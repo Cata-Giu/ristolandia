@@ -1834,35 +1834,105 @@ select.input {
   min-height: 150px;
 }
 .draft-lines {
-  padding: 0 18px;
+  padding: 0 12px;
 }
 .draft-line {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 17px 0;
+  position: relative;
+  overflow: hidden;
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 12px;
+  isolation: isolate;
 }
-.draft-line > div {
-  flex: 1;
+.draft-row-surface {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 8px;
+  align-items: center;
+  background: var(--surface);
+  touch-action: pan-y;
 }
-.draft-line strong {
-  font-size: 11px;
-}
-.note-link {
+.draft-row-edit {
   display: block;
-  color: #59675e;
-  font-size: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 0;
   border: 0;
   background: transparent;
+  color: var(--ink);
   text-align: left;
-  padding: 5px 0;
-  line-height: 1.6;
 }
-.note-link:hover {
-  text-decoration: underline;
+.draft-row-edit:hover {
+  background: var(--canvas);
+}
+.draft-row-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.draft-row-main strong {
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.draft-row-price {
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.draft-row-note {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.draft-swipe-delete {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 88px;
+  border: 0;
+  background: var(--danger);
+  color: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11px;
+  visibility: hidden;
+}
+.delete-revealed .draft-swipe-delete {
+  visibility: visible;
+}
+.draft-swipe-delete:hover {
+  filter: brightness(0.9);
+}
+.draft-row-round {
+  grid-column: 1 / -1;
+  padding-bottom: 6px;
+}
+.draft-row-surface .quantity {
+  margin: 0;
+  gap: 2px;
+  align-self: start;
+  margin-top: 6px;
+}
+.draft-row-surface .quantity button {
+  min-height: 44px;
+  min-width: 44px;
+}
+.draft-row-surface .quantity span {
+  min-width: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.draft-note-remove {
+  margin-top: 14px;
 }
 .quantity {
   display: inline-flex;
@@ -3610,12 +3680,6 @@ select.input {
     width: 42px;
     height: 42px;
   }
-  .draft-line strong {
-    font-size: 12px;
-  }
-  .draft-line .note-link {
-    font-size: 11px;
-  }
   .quantity button {
     min-width: 38px;
     min-height: 36px;
@@ -4390,8 +4454,7 @@ select.input {
 /* Palmare: catalogo compatto e comanda persistente, non modale. */
 .handheld-context,
 .sheet-grip,
-.sheet-expand,
-.mobile-line-round {
+.sheet-expand {
   display: none;
 }
 .menu-filters {
@@ -4525,20 +4588,6 @@ select.input {
 .drinks-send {
   color: var(--brand);
   border-color: var(--brand);
-}
-.remove-draft {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
-  color: var(--danger);
-  border: 0;
-  padding: 8px 0;
-  min-height: 44px;
-  font-size: 11px;
-}
-.remove-draft:hover {
-  text-decoration: underline;
 }
 .dish-details h3 {
   margin: 18px 0 6px;
@@ -4757,25 +4806,15 @@ select.input {
   .handheld-page .draft-line.other-round {
     display: none;
   }
-  .handheld-page .draft-line {
-    padding: 10px 12px;
-  }
-  .handheld-page .draft-line .service-round-select {
+  .handheld-page .draft-row-round {
     display: none;
   }
-  .mobile-line-round {
-    display: block;
-    font-size: 10px;
-    color: var(--muted);
+  .handheld-page .draft-lines {
+    padding: 0 10px;
   }
   .handheld-page .quantity button {
     min-width: 44px;
     min-height: 44px;
-  }
-  .handheld-page .note-link {
-    min-height: 44px;
-    max-width: 100%;
-    overflow-wrap: anywhere;
   }
   .handheld-page .sheet-actions {
     flex-shrink: 0;

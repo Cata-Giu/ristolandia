@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Plus,
-  Minus,
   Send,
-  Trash2,
   GlassWater,
   ChevronDown,
   ChevronUp,
@@ -15,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context';
 import { money } from '../api';
+import { OrderDraftLine } from '../components/OrderDraftLine';
 import type { Product } from '../types';
 import rules from '../../shared/service-rounds.json';
 import {
@@ -147,6 +146,13 @@ export function Orders() {
       }
       return { ...prev, [session.id]: copy };
     });
+  }
+  function removeDraft(id: string) {
+    if (!session) return;
+    setDrafts((prev) => ({
+      ...prev,
+      [session.id]: (prev[session.id] ?? []).filter((l) => l.id !== id),
+    }));
   }
   useEffect(() => {
     sessionStorage.setItem(
@@ -439,69 +445,33 @@ export function Orders() {
                       {draft.map((l) => {
                         const p = s.products.find((p) => p.id === l.productId)!;
                         return (
-                          <div
-                            className={`draft-line ${l.serviceRound === selectedRound ? 'current-round' : 'other-round'}`}
+                          <OrderDraftLine
                             key={l.id}
+                            name={p.name}
+                            price={p.price}
+                            quantity={l.quantity}
+                            note={l.note}
+                            current={l.serviceRound === selectedRound}
+                            onEdit={() => setEditing(l.id)}
+                            onQuantity={(delta) => change(p.id, delta, l.id)}
+                            onRemove={() => removeDraft(l.id)}
                           >
-                            <div>
-                              <strong>{p.name}</strong>
-                              <span className="mobile-line-round">
-                                {serviceRoundLabel(l.serviceRound)}
-                              </span>
-                              <ServiceRoundSelect
-                                label={`Uscita di ${p.name}`}
-                                value={l.serviceRound}
-                                onChange={(round) =>
-                                  setDrafts((prev) => ({
-                                    ...prev,
-                                    [session.id]: (prev[session.id] ?? []).map(
-                                      (row) =>
-                                        row.id === l.id
-                                          ? { ...row, serviceRound: round }
-                                          : row,
-                                    ),
-                                  }))
-                                }
-                              />
-                              <button
-                                className="note-link"
-                                onClick={() => setEditing(l.id)}
-                              >
-                                {l.note || 'Aggiungi nota di preparazione'}
-                              </button>
-                              <button
-                                className="remove-draft"
-                                aria-label={`Rimuovi ${p.name}`}
-                                onClick={() =>
-                                  setDrafts((prev) => ({
-                                    ...prev,
-                                    [session.id]: (
-                                      prev[session.id] ?? []
-                                    ).filter((row) => row.id !== l.id),
-                                  }))
-                                }
-                              >
-                                <Trash2 size={15} /> Rimuovi
-                              </button>
-                              <div className="quantity">
-                                <button
-                                  aria-label={`Riduci ${p.name}`}
-                                  onClick={() => change(p.id, -1, l.id)}
-                                >
-                                  <Minus size={13} />
-                                </button>
-                                <span>{l.quantity}</span>
-                                <button
-                                  aria-label={`Aumenta ${p.name}`}
-                                  onClick={() => change(p.id, 1, l.id)}
-                                  disabled={l.quantity >= 30}
-                                >
-                                  <Plus size={13} />
-                                </button>
-                              </div>
-                            </div>
-                            <strong>{money(p.price * l.quantity)}</strong>
-                          </div>
+                            <ServiceRoundSelect
+                              label={`Uscita di ${p.name}`}
+                              value={l.serviceRound}
+                              onChange={(round) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [session.id]: (prev[session.id] ?? []).map(
+                                    (row) =>
+                                      row.id === l.id
+                                        ? { ...row, serviceRound: round }
+                                        : row,
+                                  ),
+                                }))
+                              }
+                            />
+                          </OrderDraftLine>
                         );
                       })}
                     </div>
@@ -588,8 +558,8 @@ export function Orders() {
       )}
       {editing && (
         <Modal
-          title="Nota di preparazione"
-          description="Una nota non cambia prezzo o ricetta. Le varianti con effetti su ingredienti o prezzo sono da progettare nel pilota."
+          title={`Nota · ${s.products.find((p) => p.id === draft.find((l) => l.id === editing)?.productId)?.name ?? 'Prodotto'}`}
+          description="Indicazioni per la cucina o il bar."
           onClose={() => setEditing(null)}
         >
           <ActionForm
@@ -635,6 +605,15 @@ export function Orders() {
               placeholder="Es. portare insieme al primo"
             />
           </ActionForm>
+          <button
+            className="button danger full draft-note-remove"
+            onClick={() => {
+              removeDraft(editing);
+              setEditing(null);
+            }}
+          >
+            Rimuovi dalla comanda
+          </button>
         </Modal>
       )}
       {details && (

@@ -237,7 +237,7 @@ test('palmare: stesso piatto su uscite distinte, note, bozza, cucina e stampa', 
   await page
     .locator('.draft-line')
     .first()
-    .getByRole('button', { name: 'Aggiungi nota di preparazione' })
+    .getByRole('button', { name: /^Nota per / })
     .click();
   await page
     .getByLabel('Nota per il reparto')
@@ -560,9 +560,7 @@ test('palmare mobile: dettagli, filtri, portate e invio bevande preservano il ci
   await page
     .getByRole('button', { name: 'Espandi comanda', exact: true })
     .click();
-  await sheet
-    .getByRole('button', { name: 'Aggiungi nota di preparazione' })
-    .click();
+  await sheet.getByRole('button', { name: /^Nota per / }).click();
   await page
     .getByLabel('Nota per il reparto')
     .fill('Portare dopo gli antipasti');
@@ -575,9 +573,7 @@ test('palmare mobile: dettagli, filtri, portate e invio bevande preservano il ci
   await page
     .getByRole('button', { name: 'Espandi comanda', exact: true })
     .click();
-  await sheet
-    .getByRole('button', { name: 'Aggiungi nota di preparazione' })
-    .click();
+  await sheet.getByRole('button', { name: /^Nota per / }).click();
   await page.getByLabel('Nota per il reparto').fill('Senza bicchieri');
   await page.getByRole('button', { name: 'Salva nota', exact: true }).click();
   await page.getByRole('button', { name: /Invia bevande/ }).click();
@@ -626,7 +622,30 @@ test('palmare mobile: dettagli, filtri, portate e invio bevande preservano il ci
   await page
     .getByRole('button', { name: 'Espandi comanda', exact: true })
     .click();
-  await sheet
+  const removable = sheet
+    .locator('.draft-line')
+    .filter({ hasText: 'Burrata e pomodori' });
+  await expect(removable.locator('.draft-row-round')).toBeHidden();
+  expect((await removable.boundingBox())!.height).toBeLessThan(90);
+  await removable
+    .getByRole('button', { name: 'Aumenta Burrata e pomodori' })
+    .click();
+  await expect(removable.locator('.quantity span')).toHaveText('2');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await removable
+    .getByRole('button', { name: 'Riduci Burrata e pomodori' })
+    .click();
+  await expect(removable.locator('.quantity span')).toHaveText('1');
+  await expect(
+    removable.getByRole('button', { name: 'Riduci Burrata e pomodori' }),
+  ).toBeDisabled();
+  const rowBox = (await removable.locator('.draft-row-edit').boundingBox())!;
+  await page.mouse.move(rowBox.x + 110, rowBox.y + 18);
+  await page.mouse.down();
+  await page.mouse.move(rowBox.x + 15, rowBox.y + 18, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await removable
     .getByRole('button', { name: 'Rimuovi Burrata e pomodori' })
     .click();
   await expect(sheet.locator('.draft-line')).toHaveCount(0);
@@ -658,6 +677,24 @@ test('palmare mobile: dettagli, filtri, portate e invio bevande preservano il ci
       exact: true,
     })
     .click();
+  const compactRow = sheet.locator('.draft-line');
+  await compactRow.getByRole('button', { name: /^Nota per / }).click();
+  await page
+    .getByLabel('Nota per il reparto')
+    .fill('Servire insieme ai secondi');
+  await page.getByRole('button', { name: 'Salva nota', exact: true }).click();
+  await expect(compactRow.locator('.draft-row-note')).toHaveText(
+    'Servire insieme ai secondi',
+  );
+  await compactRow.getByRole('button', { name: /^Nota per / }).focus();
+  await page.keyboard.press('Delete');
+  await expect(
+    compactRow.getByRole('button', { name: /^Rimuovi / }),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(
+    compactRow.getByRole('button', { name: /^Nota per / }),
+  ).toBeFocused();
   await page.screenshot({ path: 'docs/palmare-portate.png', fullPage: false });
   for (const width of [320, 600, 820]) {
     await page.setViewportSize({ width, height: 844 });
