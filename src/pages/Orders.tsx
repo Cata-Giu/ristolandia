@@ -11,6 +11,11 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context';
 import { money } from '../api';
+import rules from '../../shared/service-rounds.json';
+import {
+  ServiceRoundSelect,
+  serviceRoundLabel,
+} from '../components/ServiceRoundSelect';
 import {
   ActionForm,
   Badge,
@@ -23,6 +28,8 @@ import {
   silently,
 } from '../components/ui';
 interface Draft {
+  id: string;
+  serviceRound: number;
   productId: string;
   quantity: number;
   note: string;
@@ -34,11 +41,22 @@ export function Orders() {
       sessionStorage.getItem('ristolandia-session') ?? sessions[0]?.id ?? '',
     ),
     [category, setCategory] = useState('Tutti'),
+    [selectedRound, setSelectedRound] = useState(rules.default),
     [query, setQuery] = useState(''),
     [drafts, setDrafts] = useState<Record<string, Draft[]>>(() => {
       try {
-        return JSON.parse(
+        const saved = JSON.parse(
           sessionStorage.getItem('ristolandia-drafts-' + s.user.id) ?? '{}',
+        );
+        return Object.fromEntries(
+          Object.entries(saved).map(([key, rows]) => [
+            key,
+            (rows as Draft[]).map((l) => ({
+              ...l,
+              id: l.id ?? crypto.randomUUID(),
+              serviceRound: l.serviceRound ?? rules.default,
+            })),
+          ]),
         );
       } catch {
         return {};
@@ -58,13 +76,23 @@ export function Orders() {
   const sent = s.orders
     .filter((o) => o.sessionId === session?.id)
     .flatMap((o) => o.lines);
-  function change(pid: string, delta: number) {
+  function change(pid: string, delta: number, draftId?: string) {
     if (!session) return;
     setDrafts((prev) => {
       const copy = [...(prev[session.id] ?? [])],
-        i = copy.findIndex((l) => l.productId === pid);
+        i = copy.findIndex((l) =>
+          draftId
+            ? l.id === draftId
+            : l.productId === pid && l.serviceRound === selectedRound,
+        );
       if (i === -1 && delta > 0)
-        copy.push({ productId: pid, quantity: 1, note: '' });
+        copy.push({
+          id: crypto.randomUUID(),
+          serviceRound: selectedRound,
+          productId: pid,
+          quantity: 1,
+          note: '',
+        });
       else if (i >= 0) {
         copy[i] = {
           ...copy[i],
@@ -147,6 +175,17 @@ export function Orders() {
                   placeholder="Cerca nel menu"
                 />
               </div>
+              <div className="round-picker">
+                <ServiceRoundSelect
+                  label="Uscita per i prossimi prodotti"
+                  value={selectedRound}
+                  onChange={setSelectedRound}
+                />
+                <p>
+                  Scegli quando servire i piatti, indipendentemente dalla
+                  categoria del menu.
+                </p>
+              </div>
               <div className="category-tabs">
                 {cats.map((c) => (
                   <button
@@ -213,26 +252,41 @@ export function Orders() {
                     {draft.map((l) => {
                       const p = s.products.find((p) => p.id === l.productId)!;
                       return (
-                        <div className="draft-line" key={l.productId}>
+                        <div className="draft-line" key={l.id}>
                           <div>
                             <strong>{p.name}</strong>
+                            <ServiceRoundSelect
+                              label={`Uscita di ${p.name}`}
+                              value={l.serviceRound}
+                              onChange={(round) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [session.id]: (prev[session.id] ?? []).map(
+                                    (row) =>
+                                      row.id === l.id
+                                        ? { ...row, serviceRound: round }
+                                        : row,
+                                  ),
+                                }))
+                              }
+                            />
                             <button
                               className="note-link"
-                              onClick={() => setEditing(l.productId)}
+                              onClick={() => setEditing(l.id)}
                             >
                               {l.note || 'Aggiungi nota di preparazione'}
                             </button>
                             <div className="quantity">
                               <button
                                 aria-label={`Riduci ${p.name}`}
-                                onClick={() => change(p.id, -1)}
+                                onClick={() => change(p.id, -1, l.id)}
                               >
                                 <Minus size={13} />
                               </button>
                               <span>{l.quantity}</span>
                               <button
                                 aria-label={`Aumenta ${p.name}`}
-                                onClick={() => change(p.id, 1)}
+                                onClick={() => change(p.id, 1, l.id)}
                                 disabled={l.quantity >= 30}
                               >
                                 <Plus size={13} />
@@ -277,6 +331,7 @@ export function Orders() {
                         <strong>
                           {l.quantity} × {l.name}
                         </strong>
+                        <small>{serviceRoundLabel(l.serviceRound)}</small>
                         {l.note && <small>{l.note}</small>}
                         <Badge status={l.status} />
                       </div>
@@ -330,7 +385,7 @@ export function Orders() {
               setDrafts((prev) => ({
                 ...prev,
                 [session.id]: (prev[session.id] ?? []).map((l) =>
-                  l.productId === editing
+                  l.id === editing
                     ? { ...l, note: String(f.get('note') ?? '') }
                     : l,
                 ),
@@ -342,7 +397,7 @@ export function Orders() {
               label="Nota per il reparto"
               name="note"
               maxLength={200}
-              defaultValue={draft.find((l) => l.productId === editing)?.note}
+              defaultValue={draft.find((l) => l.id === editing)?.note}
               placeholder="Es. portare insieme al primo"
             />
           </ActionForm>
@@ -363,6 +418,15 @@ export function Orders() {
               setConfirm(false);
             }}
           >
+            <ul className="round-confirmation">
+              {draft.map((l) => (
+                <li key={l.id}>
+                  {l.quantity} ×{' '}
+                  {s.products.find((p) => p.id === l.productId)?.name} ·{' '}
+                  <strong>{serviceRoundLabel(l.serviceRound)}</strong>
+                </li>
+              ))}
+            </ul>
             <div className="info-box">
               {draft.reduce((a, l) => a + l.quantity, 0)} prodotti ·{' '}
               {money(draftTotal)} · cucina e/o bar secondo il menu.

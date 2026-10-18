@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import { serviceRoundLabel } from '../components/ServiceRoundSelect';
 import {
   ChefHat,
   GlassWater,
@@ -115,64 +116,75 @@ export function Department({ department }: { department: 'kitchen' | 'bar' }) {
                 <div className="ticket-lines">
                   {o.lines
                     .filter((l) => l.department === department)
-                    .map((l) => (
-                      <div
-                        className={`ticket-line ${['served', 'cancelled'].includes(l.status) ? 'done' : ''}`}
-                        key={l.id}
-                      >
-                        <span className="ticket-quantity">{l.quantity}</span>
-                        <div className="ticket-item">
-                          <span className="eyebrow">{l.course}</span>
-                          <h3>{l.name}</h3>
-                          {l.note && (
-                            <p className="ticket-note">Nota: {l.note}</p>
-                          )}
-                          {l.status === 'cancelled' && (
-                            <p className="ticket-note">
-                              Annullamento: {l.reason}
-                            </p>
-                          )}
-                          <div className="ticket-actions">
-                            <Badge status={l.status} />
-                            {['sent', 'preparing'].includes(l.status) && (
-                              <button
-                                className={`button small ${l.status === 'preparing' ? 'primary' : ''}`}
-                                disabled={busy || se?.status !== 'open'}
-                                onClick={() =>
-                                  silently(
-                                    act('line', {
-                                      lineId: l.id,
-                                      status:
-                                        l.status === 'sent'
-                                          ? 'preparing'
-                                          : 'ready',
-                                    }),
-                                  )
-                                }
-                              >
-                                {l.status === 'sent'
-                                  ? 'Inizia'
-                                  : 'Segna pronta'}
-                                {l.status === 'sent' ? (
-                                  <ArrowRight size={14} />
-                                ) : (
-                                  <Check size={14} />
-                                )}
-                              </button>
+                    .sort(
+                      (a, b) => (a.serviceRound ?? 99) - (b.serviceRound ?? 99),
+                    )
+                    .map((l, index, lines) => (
+                      <Fragment key={l.id}>
+                        {(index === 0 ||
+                          lines[index - 1].serviceRound !== l.serviceRound) && (
+                          <h3 className="service-round-heading">
+                            {serviceRoundLabel(l.serviceRound)}
+                          </h3>
+                        )}
+                        <div
+                          className={`ticket-line ${['served', 'cancelled'].includes(l.status) ? 'done' : ''}`}
+                          key={l.id}
+                        >
+                          <span className="ticket-quantity">{l.quantity}</span>
+                          <div className="ticket-item">
+                            <span className="eyebrow">{l.course}</span>
+                            <h3>{l.name}</h3>
+                            {l.note && (
+                              <p className="ticket-note">Nota: {l.note}</p>
                             )}
-                            {canCancel &&
-                              l.status !== 'cancelled' &&
-                              se?.status === 'open' && (
+                            {l.status === 'cancelled' && (
+                              <p className="ticket-note">
+                                Annullamento: {l.reason}
+                              </p>
+                            )}
+                            <div className="ticket-actions">
+                              <Badge status={l.status} />
+                              {['sent', 'preparing'].includes(l.status) && (
                                 <button
-                                  className="text-button danger-text"
-                                  onClick={() => setCancel(l)}
+                                  className={`button small ${l.status === 'preparing' ? 'primary' : ''}`}
+                                  disabled={busy || se?.status !== 'open'}
+                                  onClick={() =>
+                                    silently(
+                                      act('line', {
+                                        lineId: l.id,
+                                        status:
+                                          l.status === 'sent'
+                                            ? 'preparing'
+                                            : 'ready',
+                                      }),
+                                    )
+                                  }
                                 >
-                                  Annulla
+                                  {l.status === 'sent'
+                                    ? 'Inizia'
+                                    : 'Segna pronta'}
+                                  {l.status === 'sent' ? (
+                                    <ArrowRight size={14} />
+                                  ) : (
+                                    <Check size={14} />
+                                  )}
                                 </button>
                               )}
+                              {canCancel &&
+                                l.status !== 'cancelled' &&
+                                se?.status === 'open' && (
+                                  <button
+                                    className="text-button danger-text"
+                                    onClick={() => setCancel(l)}
+                                  >
+                                    Annulla
+                                  </button>
+                                )}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </Fragment>
                     ))}
                 </div>
                 <footer>
@@ -277,12 +289,15 @@ export function Department({ department }: { department: 'kitchen' | 'bar' }) {
             <hr />
             {printOrder?.lines
               .filter((l) => l.department === department)
+              .sort((a, b) => (a.serviceRound ?? 99) - (b.serviceRound ?? 99))
               .map((l) => (
                 <div className="receipt-item" key={l.id}>
                   <strong>
                     {l.quantity} × {l.name}
                   </strong>
-                  <small>{l.course}</small>
+                  <small>
+                    {serviceRoundLabel(l.serviceRound)} · {l.course}
+                  </small>
                   {l.note && <p>NOTA: {l.note}</p>}
                   {l.status === 'cancelled' && <p>ANNULLATA · {l.reason}</p>}
                 </div>

@@ -3903,3 +3903,75 @@ select.input {
     padding-bottom: 78px;
   }
 }
+
+.round-picker {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.service-round-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 550;
+}
+.service-round-select select {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.round-picker p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.draft-line .service-round-select {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 10px;
+}
+.draft-line .service-round-select select {
+  width: 100%;
+  min-height: 36px;
+  font-size: 11px;
+}
+.service-round-heading {
+  margin-top: 14px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 13px;
+}
+.round-confirmation {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink);
+}
+@media (max-width: 600px) {
+  .service-round-select select,
+  .draft-line .service-round-select select {
+    min-height: 44px;
+  }
+  .round-picker {
+    padding: 12px;
+  }
+  .service-round-heading {
+    font-size: 14px;
+  }
+}

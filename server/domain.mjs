@@ -1,3 +1,4 @@
+import serviceRounds from '../shared/service-rounds.json' with { type: 'json' };
 import { randomUUID } from 'node:crypto';
 import { seed, USERS } from './seed.mjs';
 export class DomainError extends Error {
@@ -287,6 +288,14 @@ export function apply(s, u, action, p, key) {
     );
     const lines = p.lines.map((l) => {
       fail(l && typeof l === 'object', 'Riga ordine non valida');
+      const serviceRound =
+        l.serviceRound === undefined ? serviceRounds.default : l.serviceRound;
+      fail(
+        Number.isInteger(serviceRound) &&
+          serviceRound >= serviceRounds.min &&
+          serviceRound <= serviceRounds.max,
+        'Scegli un’uscita da 1 a ' + serviceRounds.max,
+      );
       const product = s.products.find((x) => x.id === l.productId);
       fail(product?.available, 'Prodotto non disponibile');
       fail(
@@ -308,6 +317,7 @@ export function apply(s, u, action, p, key) {
         recipeVersion: 1,
         note: l.note ?? '',
         course: product.category,
+        serviceRound,
         status: 'sent',
       };
     });

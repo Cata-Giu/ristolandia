@@ -75,6 +75,7 @@ export interface Line {
   price?: number;
   department: string;
   course: string;
+  serviceRound?: number;
   note: string;
   status: string;
   reason?: string;

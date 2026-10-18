@@ -77,6 +77,14 @@ Accesso diretto: `/?role=kitchen`, `/?role=waiter`, ecc. Richiesta cliente: `/?p
 - Temperature normali, fuori soglia e assenza letture simulate, con presa in carico; registro comunicazioni simulate.
 - Persistenza SQLite, backup/ripristino da CLI, controllo revisione e audit delle azioni sensibili.
 
+## Uscite delle pietanze dal palmare
+
+In **Ordinazioni**, selezionare “Uscita per i prossimi prodotti” prima di toccare +: 1ª, 2ª, 3ª e successive, fino alla 20ª uscita. Ogni riga del riepilogo ha anche il proprio selettore per cambiare uscita prima dell'invio. Lo stesso piatto può essere inserito in uscite diverse con quantità e note indipendenti.
+
+Dopo l'invio, cucina e bar raggruppano le righe per uscita in ordine crescente. L'uscita compare anche nello storico del palmare e nell'anteprima di stampa. La categoria (antipasto, primo, secondo, ecc.) rimane separata: un primo può essere richiesto in prima, seconda o altra uscita. I reparti mantengono i propri comandi di preparazione; la scelta dell'uscita non avvia automaticamente le portate successive.
+
+Le comande precedenti all'aggiornamento mostrano “Uscita non specificata”; le bozze precedenti sono mantenute e inizializzate alla prima uscita, modificabile prima dell'invio. Non occorre ripristinare i dati.
+
 ## Verifiche
 
 ```bash

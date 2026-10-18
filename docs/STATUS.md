@@ -10,10 +10,10 @@ Flusso operativo implementato: richiesta cliente → conferma e tavolo → arriv
 
 ## Verifiche della consegna
 
-- `npm test`: 25 test dominio/API/proxy, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
+- `npm test`: 27 test dominio/API/proxy, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
 - `npm run build`: typecheck TypeScript e build Vite, passati.
 - `npm run format:check`: formattazione coerente tramite Prettier.
-- `npm run test:browser`: 6 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 12 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
+- `npm run test:browser`: 7 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 12 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
 - Audit statico Frontend Design Premium in modalità strict: 0 errori/avvisi; evidenza premium-audit.json. Non sostituisce i test browser.
 - Lint ufficiale DESIGN.md: 0 errori; 6 avvisi di token cromatici globali non referenziati da una specifica voce componente. I token sono implementati nel CSS globale e documentati nella mappatura.
 - Screenshot di verifica: dashboard-desktop.png e sala-mobile.png in questa cartella.
@@ -27,6 +27,12 @@ Corretto il rifiuto del login dietro il proxy HTTPS di Codespaces: l'origine est
 ## Correzione inoltro locale VS Code
 
 Aggiunto supporto alle origini HTTP loopback sulla sola porta 5173, attivo esclusivamente tramite `npm run dev`. La correzione copre il caso del browser aperto su `http://127.0.0.1:5173` con Host riscritto dal tunnel. Tre test aggiuntivi verificano login e lettura attraverso un vero proxy Vite, blocco cross-origin e assenza dell’eccezione nella configurazione produttiva. Build e 25 test passati. Vite ora rifiuta una porta 5173 occupata invece di spostarsi automaticamente su un’altra porta.
+
+## Uscite nel palmare e in cucina
+
+Implementata la scelta da 1ª a 20ª uscita per prodotto, distinta dalla categoria del menu. Il selettore principale si applica alle nuove aggiunte; ogni riga è modificabile prima dell'invio. Righe con lo stesso prodotto in uscite diverse hanno identità, quantità e note indipendenti, conservate nella bozza per account/sessione. Il server valida e fotografa `serviceRound` su ogni riga; lo restituisce alle proiezioni di reparto. Cucina, bar e anteprime ordinano le righe per uscita; i dati storici senza uscita restano non specificati. Limiti/default condivisi in `shared/service-rounds.json`.
+
+Verificati: persistenza, idempotenza e rifiuto uscite non valide; scenario browser con stesso piatto in uscite diverse, modifica, nota, ricaricamento bozza, raggruppamento cucina e stampa. 27 test dominio/API/proxy e 7 scenari browser passati, build/typecheck riusciti.
 
 ## Limiti da conoscere prima di continuare
 

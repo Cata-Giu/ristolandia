@@ -202,3 +202,75 @@ test('form: errore associato, password visibile e richiesta pubblica', async ({
     page.getByLabel('Password dimostrativa', { exact: true }),
   ).toHaveAttribute('type', 'text');
 });
+
+test('palmare: stesso piatto su uscite distinte, note, bozza, cucina e stampa', async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole('link', { name: 'Ordinazioni', exact: true }).click();
+  await page.getByLabel('Uscita per i prossimi prodotti').selectOption('2');
+  await page
+    .getByRole('button', {
+      name: 'Aggiungi Spaghettoni alla carbonara',
+      exact: true,
+    })
+    .click();
+  await page.getByLabel('Uscita per i prossimi prodotti').selectOption('1');
+  await page
+    .getByRole('button', {
+      name: 'Aggiungi Spaghettoni alla carbonara',
+      exact: true,
+    })
+    .click();
+  await expect(page.locator('.draft-line')).toHaveCount(2);
+  await page
+    .locator('.draft-line')
+    .first()
+    .getByLabel('Uscita di Spaghettoni alla carbonara')
+    .selectOption('3');
+  await page
+    .locator('.draft-line')
+    .last()
+    .getByRole('button', { name: 'Aumenta Spaghettoni alla carbonara' })
+    .click();
+  await page
+    .locator('.draft-line')
+    .first()
+    .getByRole('button', { name: 'Aggiungi nota di preparazione' })
+    .click();
+  await page
+    .getByLabel('Nota per il reparto')
+    .fill('Servire dopo le altre portate');
+  await page.getByRole('button', { name: 'Salva nota', exact: true }).click();
+  await page.reload();
+  await expect(page.locator('.draft-line')).toHaveCount(2);
+  await expect(
+    page
+      .locator('.draft-line')
+      .first()
+      .getByLabel('Uscita di Spaghettoni alla carbonara'),
+  ).toHaveValue('3');
+  await expect(
+    page.locator('.draft-line').last().locator('.quantity span'),
+  ).toHaveText('2');
+  await page
+    .getByRole('button', { name: 'Invia ai reparti', exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).toContainText('3ª uscita');
+  await expect(page.getByRole('dialog')).toContainText('1ª uscita');
+  await page.getByRole('button', { name: 'Conferma invio ai reparti' }).click();
+  await page.getByRole('link', { name: 'Cucina', exact: true }).click();
+  const ticket = page.locator('.ticket').last();
+  await expect(ticket.locator('.service-round-heading')).toHaveText([
+    '1ª uscita',
+    '3ª uscita',
+  ]);
+  await expect(ticket).toContainText('Servire dopo le altre portate');
+  await ticket.getByRole('button', { name: 'Anteprima', exact: true }).click();
+  await expect(page.locator('.receipt')).toContainText('1ª uscita');
+  await expect(page.locator('.receipt')).toContainText('3ª uscita');
+  const printed = await page.locator('.receipt').innerText();
+  expect(printed.indexOf('1ª uscita')).toBeLessThan(
+    printed.indexOf('3ª uscita'),
+  );
+});

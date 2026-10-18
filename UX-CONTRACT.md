@@ -36,3 +36,7 @@ Bozze sala salvate in sessionStorage per account: restano cambiando schermata, n
 ## Limiti espliciti
 
 Nessuna modifica commerciale avanzata, rimborso o salvataggio offline. Moduli secondari dichiarati dimostrativi o consultivi. WCAG AA è obiettivo di verifica automatica e revisione, non certificazione. I popup nativi dipendono da browser e sistema operativo.
+
+## Uscite di servizio
+
+Fonte: specifica §7.2 e richiesta utente di scegliere prima/seconda/terza uscita nel palmare e riportarla in cucina. `ServiceRoundSelect` è il selettore nativo condiviso, governato da `shared/service-rounds.json`; `serviceRoundLabel` è l'unico formato del nome dell'uscita. La scelta principale vale per le prossime aggiunte; il selettore di riga modifica solo quella bozza. Le uscite inviate sono storicizzate, visibili al reparto e nella stampa. Nessun automatismo sull'avvio della preparazione.

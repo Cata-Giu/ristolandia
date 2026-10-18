@@ -326,3 +326,74 @@ test('organizzazione differente respinta e seed indipendenti', () => {
   s.products[0].price = 1;
   assert.equal(seed().products[0].price, 1400);
 });
+
+test('uscite indipendenti dalla categoria: stesso piatto su turni diversi, persistenti e idempotenti', () => {
+  const db = repository(':memory:');
+  const before = stock(db.read(), 'centro', 'pasta');
+  const key = 'rounds-demo';
+  let orderId;
+  const payload = {
+    sessionId: 'active-0',
+    lines: [
+      {
+        productId: 'carbonara',
+        quantity: 1,
+        note: 'Prima al tavolo',
+        serviceRound: 1,
+      },
+      {
+        productId: 'carbonara',
+        quantity: 2,
+        note: 'Dopo il primo giro',
+        serviceRound: 3,
+      },
+    ],
+  };
+  db.mutate((s) => {
+    orderId = go(s, 'send', payload, key).id;
+  });
+  db.mutate((s) => go(s, 'send', payload, key));
+  const s = db.read(),
+    order = s.orders.find((o) => o.id === orderId);
+  assert.deepEqual(
+    order.lines.map((l) => l.serviceRound),
+    [1, 3],
+  );
+  assert(order.lines.every((l) => l.course === 'Primi'));
+  assert.equal(s.orders.filter((o) => o.id === orderId).length, 1);
+  const projected = view(s, user('kitchen'), 'centro').orders.find(
+    (o) => o.id === orderId,
+  );
+  assert.deepEqual(
+    projected.lines.map((l) => l.serviceRound),
+    [1, 3],
+  );
+  assert.equal(stock(s, 'centro', 'pasta'), before);
+  const backup = db.backup();
+  db.restore(backup);
+  assert.equal(
+    db.read().orders.find((o) => o.id === orderId).lines[1].serviceRound,
+    3,
+  );
+  db.close();
+});
+test('uscita validata lato server; client precedenti assegnati alla prima uscita', () => {
+  const s = seed();
+  for (const serviceRound of [0, 21, -1, 1.5, '2', null])
+    assert.throws(
+      () =>
+        go(s, 'send', {
+          sessionId: 'active-0',
+          lines: [{ productId: 'acqua', quantity: 1, serviceRound }],
+        }),
+      /uscita/,
+    );
+  const result = go(s, 'send', {
+    sessionId: 'active-0',
+    lines: [{ productId: 'acqua', quantity: 1 }],
+  });
+  assert.equal(
+    s.orders.find((o) => o.id === result.id).lines[0].serviceRound,
+    1,
+  );
+});
