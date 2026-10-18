@@ -58,6 +58,11 @@ export interface Session {
   due: number;
 }
 export interface Product {
+  ingredients?: string[];
+  allergens?: string[];
+  preparation?: string;
+  dietary?: string[];
+  ayce?: boolean;
   id: string;
   name: string;
   category: string;

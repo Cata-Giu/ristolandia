@@ -10,15 +10,15 @@ Flusso operativo implementato: richiesta cliente → conferma e tavolo → arriv
 
 ## Verifiche della consegna
 
-- `npm test`: 40 test dominio/API/proxy/documenti, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
+- `npm test`: 41 test dominio/API/proxy/documenti, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
 - `npm run build`: typecheck TypeScript e build Vite, passati.
 - `npm run format:check`: formattazione coerente tramite Prettier.
-- `npm run test:browser`: 12 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 13 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
+- `npm run test:browser`: 13 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 13 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
 - Audit statico Frontend Design Premium in modalità strict: 0 errori/avvisi; evidenza premium-audit.json. Non sostituisce i test browser.
 - Lint ufficiale DESIGN.md: 0 errori; 6 avvisi di token cromatici globali non referenziati da una specifica voce componente. I token sono implementati nel CSS globale e documentati nella mappatura.
-- Screenshot di verifica: dashboard-desktop.png, sala-mobile.png, cassa-demo.png e bolle-archivio.png in questa cartella.
+- Screenshot di verifica: dashboard-desktop.png, sala-mobile.png, cassa-demo.png, bolle-archivio.png e palmare-portate.png in questa cartella.
 
-Durante la revisione sono stati corretti: overflow mobile dei cataloghi e delle tabelle, nomi accessibili dei campi, focus dei dialoghi e della navigazione mobile, contrasto testo/stati, coerenza del set demo e costi ingredienti nell’unità base. La barra mobile del palmare rende raggiungibile il riepilogo senza scorrere l'intero catalogo.
+Durante la revisione sono stati corretti: overflow mobile dei cataloghi e delle tabelle, nomi accessibili dei campi, focus dei dialoghi e della navigazione mobile, contrasto testo/stati, coerenza del set demo e costi ingredienti nell’unità base. Il pannello persistente del palmare rende raggiungibile la comanda senza scorrere l’intero catalogo.
 
 ## Correzione accesso Codespaces
 
@@ -60,3 +60,9 @@ Verifiche: 40 test dominio/API/proxy/documenti e 12 scenari browser, comprese fo
 ## Prossima sessione Codex
 
 Leggere AGENTS.md e il README, eseguire scripts/cloud-setup.sh, controllare git status. Concordare un sottoflusso della ROADMAP prima di estendere la demo. Conservare regole di dominio e componenti canonici; aggiornare questo stato dopo modifiche rilevanti.
+
+## Palmare mobile compatto
+
+Catalogo mobile a tre colonne con dettagli ingredienti/allergeni/preparazione, interruttori combinabili AYCE e preferenze alimentari, tavolo attivo sempre leggibile senza tendine o titolo introduttivo. Pannello inferiore non modale con portate 1–3 e aggiunta fino a 20, riduzione tramite trascinamento o pulsante e ampliamento per modificare righe. Note, quantità, rimozione bozze e spostamento portata; invio bevande separato che conserva i piatti e mantiene la bozza in caso di errore. Schede informative dimostrative esplicite, senza certificare allergie o contaminazioni; AYCE filtra senza cambiare prezzi.
+
+Verifica browser dedicata: dettagli e filtri combinati, quarta portata, note cibo/bevande, invio parziale con errore e retry, persistenza al refresh, invio successivo cibo, rimozione riga, trascinamento, alternativa con pulsante, assenza risultati, axe AA e larghezze 320/390/600/820 px. Gli scenari preesistenti verificano note e uscite nei reparti e nella stampa.

@@ -1,0 +1,78 @@
+{
+  "burrata": {
+    "ingredients": ["Burrata", "Pomodori", "Basilico", "Olio EVO"],
+    "allergens": ["Latte"],
+    "preparation": "Impiattare burrata e pomodori, condire con olio e basilico.",
+    "dietary": ["glutenFree", "vegetarian"],
+    "ayce": true
+  },
+  "tartare": {
+    "ingredients": ["Manzo", "Capperi", "Senape"],
+    "allergens": ["Senape"],
+    "preparation": "Battere il manzo al coltello e condire al momento.",
+    "dietary": ["glutenFree", "lactoseFree"],
+    "ayce": true
+  },
+  "carbonara": {
+    "ingredients": ["Pasta di grano", "Guanciale", "Uova", "Pecorino", "Pepe"],
+    "allergens": ["Glutine", "Uova", "Latte"],
+    "preparation": "Cuocere la pasta; mantecare fuori dal fuoco con uova, pecorino e guanciale.",
+    "dietary": [],
+    "ayce": true
+  },
+  "risotto": {
+    "ingredients": [
+      "Riso Carnaroli",
+      "Zafferano",
+      "Parmigiano",
+      "Burro",
+      "Brodo vegetale"
+    ],
+    "allergens": ["Latte", "Sedano"],
+    "preparation": "Tostare il riso, cuocere con brodo e zafferano; mantecare con burro e Parmigiano.",
+    "dietary": ["glutenFree", "vegetarian"],
+    "ayce": true
+  },
+  "tagliata": {
+    "ingredients": ["Manzo", "Rucola", "Parmigiano", "Riduzione al balsamico"],
+    "allergens": ["Latte", "Solfiti"],
+    "preparation": "Grigliare il manzo, lasciare riposare e affettare; completare con rucola e scaglie.",
+    "dietary": ["glutenFree"],
+    "ayce": false
+  },
+  "tiramisu": {
+    "ingredients": ["Savoiardi", "Mascarpone", "Uova", "Caffè", "Cacao"],
+    "allergens": ["Glutine", "Latte", "Uova"],
+    "preparation": "Alternare savoiardi al caffè e crema; conservare al freddo e finire con cacao.",
+    "dietary": [],
+    "ayce": true
+  },
+  "spritz": {
+    "ingredients": ["Prosecco", "Aperitivo", "Soda", "Arancia"],
+    "allergens": ["Solfiti"],
+    "preparation": "Versare su ghiaccio e mescolare delicatamente.",
+    "dietary": ["glutenFree", "lactoseFree"],
+    "ayce": false
+  },
+  "vino": {
+    "ingredients": ["Vino Valpolicella"],
+    "allergens": ["Solfiti"],
+    "preparation": "Servire una mescita da 125 ml.",
+    "dietary": ["glutenFree", "lactoseFree"],
+    "ayce": false
+  },
+  "acqua": {
+    "ingredients": ["Acqua naturale"],
+    "allergens": [],
+    "preparation": "Servire la bottiglia da 75 cl.",
+    "dietary": ["glutenFree", "lactoseFree", "vegan", "vegetarian"],
+    "ayce": false
+  },
+  "limonata": {
+    "ingredients": ["Acqua", "Limone", "Zucchero", "Menta"],
+    "allergens": [],
+    "preparation": "Servire fresca.",
+    "dietary": ["glutenFree", "lactoseFree", "vegan", "vegetarian"],
+    "ayce": true
+  }
+}

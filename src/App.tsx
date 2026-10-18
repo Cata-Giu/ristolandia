@@ -392,7 +392,7 @@ export default function App() {
     );
   return (
     <AppContext.Provider value={{ state: s, act, busy, navigate, refresh }}>
-      <div className="app-shell">
+      <div className={`app-shell ${page === 'orders' ? 'handheld-shell' : ''}`}>
         <a className="skip-link" href="#main-content">
           Vai al contenuto
         </a>

@@ -8,6 +8,7 @@ import {
   MAX_CHANGE,
 } from '../shared/finance.mjs';
 import { drawer } from './cash.mjs';
+import menuDetails from '../shared/menu-details.json' with { type: 'json' };
 import serviceRounds from '../shared/service-rounds.json' with { type: 'json' };
 import { randomUUID } from 'node:crypto';
 import { seed, USERS } from './seed.mjs';
@@ -1039,11 +1040,12 @@ export function project(s, u, venueId) {
             openedAt: se.openedAt,
           },
     ),
-    products: s.products.map((p) =>
-      u.role === 'warehouse' || econ.includes(u.role)
+    products: s.products.map((product) => {
+      const p = { ...menuDetails[product.id], ...product };
+      return u.role === 'warehouse' || econ.includes(u.role)
         ? p
-        : (({ recipe, ...rest }) => rest)(p),
-    ),
+        : (({ recipe, ...rest }) => rest)(p);
+    }),
     orders: filter(s.orders)
       .filter(
         (o) =>

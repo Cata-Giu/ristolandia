@@ -403,3 +403,30 @@ test('uscita validata lato server; client precedenti assegnati alla prima uscita
     1,
   );
 });
+
+test('schede informative sala: fallback demo, metadati salvati prevalenti e ricette riservate', () => {
+  const s = seed();
+  const catalog = view(s, user('waiter'), 'centro').products;
+  const carbonara = catalog.find((p) => p.id === 'carbonara');
+  assert.ok(carbonara.allergens.includes('Glutine'));
+  assert.ok(carbonara.ingredients.includes('Pecorino'));
+  assert.equal(carbonara.recipe, undefined);
+  assert.ok(!carbonara.dietary.includes('glutenFree'));
+  s.products.find((p) => p.id === 'carbonara').allergens = [
+    'Scheda aggiornata',
+  ];
+  s.products.push({
+    id: 'unknown',
+    name: 'Da completare',
+    department: 'kitchen',
+    category: 'Primi',
+    price: 100,
+    available: true,
+  });
+  const updated = view(s, user('waiter'), 'centro').products;
+  assert.deepEqual(updated.find((p) => p.id === 'carbonara').allergens, [
+    'Scheda aggiornata',
+  ]);
+  assert.equal(updated.find((p) => p.id === 'unknown').dietary, undefined);
+  assert.equal(updated.find((p) => p.id === 'unknown').allergens, undefined);
+});

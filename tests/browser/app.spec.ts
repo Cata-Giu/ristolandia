@@ -101,7 +101,7 @@ test('mobile sala: navigazione dedicata e nessun overflow pagina', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, 'Sala');
   await expect(
-    page.getByRole('heading', { name: 'Un ordine fatto bene.' }),
+    page.locator('.handheld-context').getByRole('heading', { name: /Tavolo/ }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Panoramica', exact: true }),
@@ -152,7 +152,7 @@ test('tutte le sezioni: accessibilità e layout desktop e smartphone', async ({
   ];
   for (const route of routes) {
     await page.goto('/?view=' + route + '&venue=centro');
-    await expect(page.locator('main h1')).toBeVisible();
+    await expect(page.locator('main h1:visible')).toBeVisible();
     const scan = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze();
@@ -488,4 +488,183 @@ test('cassa su telefono: pagamento accessibile, errore conservato e resto insuff
   ).toBe(true);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
+});
+
+test('palmare mobile: dettagli, filtri, portate e invio bevande preservano il cibo', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page, 'Sala');
+  await expect(page.locator('.handheld-intro')).toBeHidden();
+  await expect(page.locator('#order-session')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Vai ai tavoli' })).toHaveCount(
+    0,
+  );
+  expect(
+    await page
+      .locator('.product-grid')
+      .evaluate(
+        (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
+      ),
+  ).toBe(3);
+  const sheet = page.locator('.order-sheet');
+  expect((await sheet.boundingBox())!.height).toBeLessThan(844 * 0.38);
+  await page
+    .getByRole('button', {
+      name: 'Informazioni su Spaghettoni alla carbonara',
+      exact: true,
+    })
+    .click();
+  await expect(page.getByRole('dialog')).toContainText('Pecorino');
+  await expect(page.getByRole('dialog')).toContainText('Glutine');
+  await expect(page.getByRole('dialog')).toContainText('Preparazione');
+  await page.keyboard.press('Escape');
+  await page.getByRole('switch', { name: 'Gluten free', exact: true }).click();
+  await expect(
+    page.getByRole('button', {
+      name: 'Aggiungi Spaghettoni alla carbonara',
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', {
+      name: 'Aggiungi Burrata e pomodori',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole('switch', { name: 'Vegan', exact: true }).click();
+  await expect(
+    page.getByRole('button', {
+      name: 'Aggiungi Burrata e pomodori',
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole('switch', { name: 'AYCE', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Aggiungi Acqua naturale', exact: true }),
+  ).toHaveCount(0);
+  for (const name of ['AYCE', 'Vegan', 'Gluten free'])
+    await page.getByRole('switch', { name, exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Aggiungi portata', exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: '4ª portata', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page
+    .getByRole('button', {
+      name: 'Aggiungi Spaghettoni alla carbonara',
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('button', { name: 'Espandi comanda', exact: true })
+    .click();
+  await sheet
+    .getByRole('button', { name: 'Aggiungi nota di preparazione' })
+    .click();
+  await page
+    .getByLabel('Nota per il reparto')
+    .fill('Portare dopo gli antipasti');
+  await page.getByRole('button', { name: 'Salva nota', exact: true }).click();
+  await page.getByRole('button', { name: 'Riduci altezza comanda' }).click();
+  await page.getByRole('button', { name: '1ª portata', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Aggiungi Acqua naturale', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Espandi comanda', exact: true })
+    .click();
+  await sheet
+    .getByRole('button', { name: 'Aggiungi nota di preparazione' })
+    .click();
+  await page.getByLabel('Nota per il reparto').fill('Senza bicchieri');
+  await page.getByRole('button', { name: 'Salva nota', exact: true }).click();
+  await page.getByRole('button', { name: /Invia bevande/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('Acqua naturale');
+  await expect(page.getByRole('dialog')).not.toContainText('Spaghettoni');
+  await page.route(
+    '**/api/actions/send',
+    (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Invio di prova non riuscito' }),
+      }),
+    { times: 1 },
+  );
+  await page.getByRole('button', { name: 'Conferma invio bevande' }).click();
+  await expect(page.getByRole('dialog')).toContainText(
+    'Invio di prova non riuscito',
+  );
+  await page.getByRole('button', { name: 'Conferma invio bevande' }).click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(sheet.locator('.draft-line')).toHaveCount(1);
+  await expect(sheet.locator('.already-sent')).toContainText('Senza bicchieri');
+  await page.getByRole('button', { name: '4ª portata', exact: true }).click();
+  await expect(sheet.locator('.draft-line')).toContainText(
+    'Portare dopo gli antipasti',
+  );
+  await page.reload();
+  await page.getByRole('button', { name: '4ª portata', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Espandi comanda', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Invia ai reparti', exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).toContainText('4ª uscita');
+  await page.getByRole('button', { name: 'Conferma invio ai reparti' }).click();
+  await expect(sheet.locator('.draft-line')).toHaveCount(0);
+  await expect(sheet.locator('.already-sent')).toContainText(
+    'Portare dopo gli antipasti',
+  );
+  await page.getByRole('button', { name: 'Riduci altezza comanda' }).click();
+  await page
+    .getByRole('button', { name: 'Aggiungi Burrata e pomodori', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Espandi comanda', exact: true })
+    .click();
+  await sheet
+    .getByRole('button', { name: 'Rimuovi Burrata e pomodori' })
+    .click();
+  await expect(sheet.locator('.draft-line')).toHaveCount(0);
+  const grip = page.locator('.sheet-grip');
+  const box = (await grip.boundingBox())!;
+  await page.mouse.move(box.x + 100, box.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 100, box.y + 90, { steps: 8 });
+  await page.mouse.up();
+  await expect(sheet).toHaveClass(/collapsed/);
+  await page.getByRole('button', { name: 'Apri comanda', exact: true }).click();
+  await expect(sheet).toHaveClass(/open/);
+  await page
+    .getByRole('textbox', { name: 'Cerca nel menu' })
+    .fill('Nessun piatto');
+  await expect(
+    page.getByRole('heading', { name: 'Prodotto non trovato' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Cancella ricerca' }).click();
+  const scan = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(scan.violations).toEqual([]);
+  const closeToast = page.getByRole('button', { name: 'Chiudi notifica' });
+  if (await closeToast.isVisible()) await closeToast.click();
+  await page
+    .getByRole('button', {
+      name: 'Aggiungi Spaghettoni alla carbonara',
+      exact: true,
+    })
+    .click();
+  await page.screenshot({ path: 'docs/palmare-portate.png', fullPage: false });
+  for (const width of [320, 600, 820]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
 });

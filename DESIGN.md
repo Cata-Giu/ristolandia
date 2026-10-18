@@ -49,7 +49,7 @@ Font di sistema per funzionare senza CDN. Avenir Next/Segoe UI per strumenti; Pa
 
 ## Layout
 
-Sidebar desktop da 238 px, contenuto con padding 34 px. Breakpoint 1250, 1020, 820 e 600 px: sidebar a scomparsa sotto 820, colonne singole sui telefoni. Il documento scorre verticalmente; le tabelle hanno overflow orizzontale locale. Cucina usa ticket autonomi; palmare usa catalogo e riepilogo, impilati sul telefono.
+Sidebar desktop da 238 px, contenuto con padding 34 px. Breakpoint 1250, 1020, 820 e 600 px: sidebar a scomparsa sotto 820, colonne singole sui telefoni. Il documento scorre verticalmente; le tabelle hanno overflow orizzontale locale. Cucina usa ticket autonomi; palmare usa catalogo e riepilogo affiancati su desktop e un pannello persistente dal basso sul telefono.
 
 ## Elevation & Depth
 
@@ -70,3 +70,7 @@ Primitive canoniche in `src/components/ui.tsx`: Panel, PageTitle, Badge, Modal, 
 - Ricavare indicatori dalle operazioni, includendo denominatore e definizione.
 - Non aggiungere funzioni di amministrazione alle postazioni operative.
 - Non dichiarare conformità normativa, compatibilità hardware o integrazioni reali.
+
+## Palmare di sala
+
+Su telefono (fino a 600 px), catalogo a tre colonne con schede brevi: nome completo, prezzo, dettagli e aggiunta da 44 px. Nessun titolo introduttivo o selettore tavolo nel catalogo; il tavolo attivo resta leggibile, il cambio avviene dalla sala nel menu laterale. La barra superiore mantiene navigazione e stato connessione in 44 px. Comanda persistente dal basso, aperta a circa un terzo del viewport, riducibile e ampliabile: non è modale e lascia il menu interattivo. Le portate numerate sono il tratto operativo riconoscibile del palmare. Desktop mantiene catalogo e riepilogo affiancati.

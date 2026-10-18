@@ -156,3 +156,9 @@ Backup e database esclusi da Git. Non usare dati reali in questi file.
 ## Confini e passaggio al pilota
 
 Nessuna integrazione esterna è attiva. Stampanti/palmari, cassa fiscale/POS, WhatsApp ufficiale/email e sensori richiedono verifica tecnica e autorizzazione. Il pilota richiede autenticazione reale, isolamento organizzazioni su database progettato per più tenant, policy privacy/retention, regole commerciali validate e test hardware/rete. Dettagli, formule e limiti in [ARCHITECTURE.md](docs/ARCHITECTURE.md); attività successive in [ROADMAP.md](docs/ROADMAP.md).
+
+### Palmare su telefono
+
+Nel menu **Ordinazioni**, il catalogo mobile mostra tre prodotti per riga. Tocca la scheda per ingredienti, allergeni e preparazione oppure **+** per aggiungere alla portata scelta. Gli interruttori AYCE, gluten free, lactose free, vegan e vegetarian si combinano; AYCE filtra il catalogo dimostrativo e non applica tariffe o formule di pagamento.
+
+La comanda si apre dal basso: scegli 1, 2, 3 o **+** per altre portate. Puoi trascinare la maniglia verso il basso, usare i pulsanti per ridurla/ampliarla, modificare quantità, rimuovere una voce in bozza e salvare note/spostare portata. **Invia bevande** manda al bar solo le bevande presenti, lasciando il cibo in bozza. Le note arrivano in comanda. Per cambiare tavolo: menu laterale → **Sala e tavoli** → apri la comanda del tavolo. Le informazioni alimentari sono fittizie e richiedono verifica con la cucina, inclusa la contaminazione.

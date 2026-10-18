@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Plus,
   Minus,
   Send,
-  ShoppingBag,
+  Trash2,
+  GlassWater,
+  ChevronDown,
+  ChevronUp,
+  Info,
   Users,
   UtensilsCrossed,
   Check,
@@ -11,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context';
 import { money } from '../api';
+import type { Product } from '../types';
 import rules from '../../shared/service-rounds.json';
 import {
   ServiceRoundSelect,
@@ -34,6 +39,13 @@ interface Draft {
   quantity: number;
   note: string;
 }
+const menuFilters = [
+  ['ayce', 'AYCE'],
+  ['glutenFree', 'Gluten free'],
+  ['lactoseFree', 'Lactose free'],
+  ['vegan', 'Vegan'],
+  ['vegetarian', 'Vegetarian'],
+] as const;
 export function Orders() {
   const { state: s, act, busy, navigate } = useApp();
   const sessions = s.sessions.filter((se) => se.status === 'open'),
@@ -63,7 +75,15 @@ export function Orders() {
       }
     }),
     [editing, setEditing] = useState<string | null>(null),
-    [confirm, setConfirm] = useState(false);
+    [confirm, setConfirm] = useState<Draft[] | null>(null),
+    [drinkOnly, setDrinkOnly] = useState(false),
+    [confirmationTable, setConfirmationTable] = useState({ id: '', code: '' }),
+    [filters, setFilters] = useState<string[]>([]),
+    [details, setDetails] = useState<Product | null>(null),
+    [sheet, setSheet] = useState<'collapsed' | 'open' | 'expanded'>('open'),
+    [roundCount, setRoundCount] = useState(3);
+  const dragStart = useRef<number | null>(null);
+  const dragged = useRef(false);
   const session = sessions.find((se) => se.id === sid) ?? sessions[0],
     draft = drafts[session?.id ?? ''] ?? [],
     table = s.tables.find((t) => t.id === session?.tableId),
@@ -71,8 +91,33 @@ export function Orders() {
     products = s.products.filter(
       (p) =>
         (category === 'Tutti' || p.category === category) &&
-        p.name.toLowerCase().includes(query.toLowerCase()),
+        p.name.toLowerCase().includes(query.toLowerCase()) &&
+        filters.every((f) =>
+          f === 'ayce' ? p.ayce === true : p.dietary?.includes(f),
+        ),
     );
+  const rounds = Array.from(
+    {
+      length: Math.min(
+        rules.max,
+        Math.max(
+          roundCount,
+          selectedRound,
+          ...draft.map((l) => l.serviceRound),
+        ),
+      ),
+    },
+    (_, i) => i + 1,
+  );
+  const drinks = draft.filter(
+    (l) => s.products.find((p) => p.id === l.productId)?.department === 'bar',
+  );
+  function prepareSend(onlyDrinks = false) {
+    if (!session) return;
+    setConfirmationTable({ id: session.id, code: table?.code ?? '' });
+    setDrinkOnly(onlyDrinks);
+    setConfirm(structuredClone(onlyDrinks ? drinks : draft));
+  }
   const sent = s.orders
     .filter((o) => o.sessionId === session?.id)
     .flatMap((o) => o.lines);
@@ -116,17 +161,14 @@ export function Orders() {
     0,
   );
   return (
-    <>
-      <PageTitle
-        eyebrow="PALMARE DI SALA"
-        title="Un ordine fatto bene."
-        description="Solo i nuovi prodotti vengono inviati. Le comande precedenti restano nello storico."
-        actions={
-          <button className="button" onClick={() => navigate('tables')}>
-            Vai ai tavoli
-          </button>
-        }
-      />
+    <div className={`handheld-page sheet-${sheet}`}>
+      <div className="handheld-intro">
+        <PageTitle
+          eyebrow="PALMARE DI SALA"
+          title="Un ordine fatto bene."
+          description="Solo i nuovi prodotti vengono inviati. Le comande precedenti restano nello storico."
+        />
+      </div>
       {!session ? (
         <Panel>
           <Empty
@@ -143,6 +185,11 @@ export function Orders() {
         </Panel>
       ) : (
         <>
+          <div className="handheld-context">
+            <h1>Tavolo {table?.code}</h1>
+            <span>{session.covers} coperti</span>
+            <span>{s.venues.find((v) => v.id === session.venueId)?.name}</span>
+          </div>
           <div className="order-table-select">
             <label htmlFor="order-session">Tavolo in servizio</label>
             <select
@@ -175,6 +222,30 @@ export function Orders() {
                   placeholder="Cerca nel menu"
                 />
               </div>
+              <div
+                className="menu-filters"
+                role="group"
+                aria-label="Filtri del menu"
+              >
+                {menuFilters.map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="switch"
+                    aria-checked={filters.includes(key)}
+                    onClick={() =>
+                      setFilters((prev) =>
+                        prev.includes(key)
+                          ? prev.filter((f) => f !== key)
+                          : [...prev, key],
+                      )
+                    }
+                  >
+                    <span className="filter-switch" aria-hidden="true" />
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="round-picker">
                 <ServiceRoundSelect
                   label="Uscita per i prossimi prodotti"
@@ -203,18 +274,23 @@ export function Orders() {
                     key={p.id}
                     className={`product-card ${!p.available ? 'unavailable' : ''}`}
                   >
-                    <div
-                      className={`product-art art-${p.category.toLowerCase()}`}
+                    <button
+                      className="product-details-button"
+                      aria-label={`Informazioni su ${p.name}`}
+                      onClick={() => setDetails(p)}
                     >
-                      <UtensilsCrossed size={30} strokeWidth={1} />
-                      <span>{p.category}</span>
-                    </div>
-                    <div className="product-content">
-                      <div className="product-category">
-                        {p.department === 'bar' ? 'BAR' : 'CUCINA'}
+                      <div
+                        className={`product-art art-${p.category.toLowerCase()}`}
+                      >
+                        <UtensilsCrossed size={24} strokeWidth={1.5} />
+                        <span>{p.category}</span>
                       </div>
                       <h3>{p.name}</h3>
-                      <p>{p.description}</p>
+                      <span className="product-info-hint">
+                        <Info size={12} /> Dettagli
+                      </span>
+                    </button>
+                    <div className="product-content">
                       <div className="product-bottom">
                         <strong>{money(p.price)}</strong>
                         <button
@@ -238,139 +314,277 @@ export function Orders() {
                 />
               )}
             </div>
-            <aside id="order-summary" className="order-summary panel">
+            <aside
+              id="order-summary"
+              aria-label="Comanda del tavolo"
+              className={`order-summary panel order-sheet ${sheet}`}
+            >
+              <div
+                className="sheet-grip"
+                onPointerDown={(e) => {
+                  dragged.current = false;
+                  dragStart.current = e.clientY;
+                  (e.target as HTMLElement)
+                    .closest('button')
+                    ?.setPointerCapture(e.pointerId);
+                }}
+                onPointerCancel={() => {
+                  dragStart.current = null;
+                }}
+                onPointerUp={(e) => {
+                  if (dragStart.current != null) {
+                    const distance = e.clientY - dragStart.current;
+                    dragged.current = Math.abs(distance) > 30;
+                    if (distance > 30) setSheet('collapsed');
+                    else if (distance < -30)
+                      setSheet(sheet === 'collapsed' ? 'open' : 'expanded');
+                    dragStart.current = null;
+                  }
+                }}
+              >
+                <button
+                  aria-label={
+                    sheet === 'collapsed' ? 'Apri comanda' : 'Riduci comanda'
+                  }
+                  aria-expanded={sheet !== 'collapsed'}
+                  onClick={() => {
+                    if (dragged.current) {
+                      dragged.current = false;
+                      return;
+                    }
+                    setSheet(sheet === 'collapsed' ? 'open' : 'collapsed');
+                  }}
+                >
+                  <span />
+                  <ChevronDown size={16} />
+                </button>
+              </div>
               <div className="panel-heading">
                 <div>
                   <span className="eyebrow">NUOVA COMANDA</span>
                   <h2>Tavolo {table?.code}</h2>
                 </div>
-                <ShoppingBag size={20} />
+                <span className="sheet-count" aria-live="polite">
+                  {draft.reduce((a, l) => a + l.quantity, 0)}{' '}
+                  {draft.reduce((a, l) => a + l.quantity, 0) === 1
+                    ? 'prodotto'
+                    : 'prodotti'}{' '}
+                  · {money(draftTotal)}
+                </span>
+                <button
+                  className="icon-button sheet-expand"
+                  aria-label={
+                    sheet === 'expanded'
+                      ? 'Riduci altezza comanda'
+                      : 'Espandi comanda'
+                  }
+                  onClick={() =>
+                    setSheet(sheet === 'expanded' ? 'open' : 'expanded')
+                  }
+                >
+                  {sheet === 'expanded' ? (
+                    <ChevronDown size={18} />
+                  ) : (
+                    <ChevronUp size={18} />
+                  )}
+                </button>
               </div>
-              {draft.length ? (
-                <>
-                  <div className="draft-lines">
-                    {draft.map((l) => {
-                      const p = s.products.find((p) => p.id === l.productId)!;
-                      return (
-                        <div className="draft-line" key={l.id}>
-                          <div>
-                            <strong>{p.name}</strong>
-                            <ServiceRoundSelect
-                              label={`Uscita di ${p.name}`}
-                              value={l.serviceRound}
-                              onChange={(round) =>
-                                setDrafts((prev) => ({
-                                  ...prev,
-                                  [session.id]: (prev[session.id] ?? []).map(
-                                    (row) =>
-                                      row.id === l.id
-                                        ? { ...row, serviceRound: round }
-                                        : row,
-                                  ),
-                                }))
-                              }
-                            />
-                            <button
-                              className="note-link"
-                              onClick={() => setEditing(l.id)}
-                            >
-                              {l.note || 'Aggiungi nota di preparazione'}
-                            </button>
-                            <div className="quantity">
-                              <button
-                                aria-label={`Riduci ${p.name}`}
-                                onClick={() => change(p.id, -1, l.id)}
-                              >
-                                <Minus size={13} />
-                              </button>
-                              <span>{l.quantity}</span>
-                              <button
-                                aria-label={`Aumenta ${p.name}`}
-                                onClick={() => change(p.id, 1, l.id)}
-                                disabled={l.quantity >= 30}
-                              >
-                                <Plus size={13} />
-                              </button>
-                            </div>
-                          </div>
-                          <strong>{money(p.price * l.quantity)}</strong>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="order-total">
-                    <span>Totale nuova comanda</span>
-                    <strong>{money(draftTotal)}</strong>
-                  </div>
+              <div
+                className="round-tabs"
+                role="group"
+                aria-label="Portata per i prossimi prodotti"
+              >
+                {rounds.map((round) => (
                   <button
-                    className="button primary full"
-                    disabled={busy}
-                    onClick={() => setConfirm(true)}
+                    key={round}
+                    aria-label={`${round}ª portata`}
+                    aria-pressed={selectedRound === round}
+                    onClick={() => {
+                      setSelectedRound(round);
+                      if (sheet === 'collapsed') setSheet('open');
+                    }}
                   >
-                    <Send size={16} />
-                    Invia ai reparti
+                    {' '}
+                    {round}
+                    <span>ª portata</span>
+                    <small>
+                      {draft
+                        .filter((l) => l.serviceRound === round)
+                        .reduce((a, l) => a + l.quantity, 0) || ''}
+                    </small>
                   </button>
-                  <p className="small muted">
-                    Invio dimostrativo · nessuna stampa reale
-                  </p>
-                </>
-              ) : (
-                <Empty
-                  title="Componi la comanda"
-                  description="Tocca + accanto a un prodotto per aggiungerlo."
-                />
-              )}
-              <div className="already-sent">
-                <h3>
-                  Già inviati <span>{sent.length}</span>
-                </h3>
-                {sent.length ? (
-                  sent.map((l) => (
-                    <div className="sent-line" key={l.id}>
-                      <div>
-                        <strong>
-                          {l.quantity} × {l.name}
-                        </strong>
-                        <small>{serviceRoundLabel(l.serviceRound)}</small>
-                        {l.note && <small>{l.note}</small>}
-                        <Badge status={l.status} />
-                      </div>
-                      {l.status === 'ready' && (
-                        <button
-                          className="button small"
-                          disabled={busy}
-                          onClick={() =>
-                            silently(
-                              act('line', { lineId: l.id, status: 'served' }),
-                            )
-                          }
-                        >
-                          <Check size={14} />
-                          Servito
-                        </button>
-                      )}
+                ))}
+                <button
+                  aria-label="Aggiungi portata"
+                  disabled={rounds.length >= rules.max}
+                  onClick={() => {
+                    const next = rounds.length + 1;
+                    setRoundCount(next);
+                    setSelectedRound(next);
+                    if (sheet === 'collapsed') setSheet('open');
+                  }}
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
+              <div
+                className="sheet-scroll"
+                tabIndex={0}
+                role="region"
+                aria-label="Righe della comanda e storico"
+              >
+                {draft.length ? (
+                  <>
+                    <div className="draft-lines">
+                      {draft.map((l) => {
+                        const p = s.products.find((p) => p.id === l.productId)!;
+                        return (
+                          <div
+                            className={`draft-line ${l.serviceRound === selectedRound ? 'current-round' : 'other-round'}`}
+                            key={l.id}
+                          >
+                            <div>
+                              <strong>{p.name}</strong>
+                              <span className="mobile-line-round">
+                                {serviceRoundLabel(l.serviceRound)}
+                              </span>
+                              <ServiceRoundSelect
+                                label={`Uscita di ${p.name}`}
+                                value={l.serviceRound}
+                                onChange={(round) =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [session.id]: (prev[session.id] ?? []).map(
+                                      (row) =>
+                                        row.id === l.id
+                                          ? { ...row, serviceRound: round }
+                                          : row,
+                                    ),
+                                  }))
+                                }
+                              />
+                              <button
+                                className="note-link"
+                                onClick={() => setEditing(l.id)}
+                              >
+                                {l.note || 'Aggiungi nota di preparazione'}
+                              </button>
+                              <button
+                                className="remove-draft"
+                                aria-label={`Rimuovi ${p.name}`}
+                                onClick={() =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [session.id]: (
+                                      prev[session.id] ?? []
+                                    ).filter((row) => row.id !== l.id),
+                                  }))
+                                }
+                              >
+                                <Trash2 size={15} /> Rimuovi
+                              </button>
+                              <div className="quantity">
+                                <button
+                                  aria-label={`Riduci ${p.name}`}
+                                  onClick={() => change(p.id, -1, l.id)}
+                                >
+                                  <Minus size={13} />
+                                </button>
+                                <span>{l.quantity}</span>
+                                <button
+                                  aria-label={`Aumenta ${p.name}`}
+                                  onClick={() => change(p.id, 1, l.id)}
+                                  disabled={l.quantity >= 30}
+                                >
+                                  <Plus size={13} />
+                                </button>
+                              </div>
+                            </div>
+                            <strong>{money(p.price * l.quantity)}</strong>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))
+                    <div className="order-total">
+                      <span>Totale nuova comanda</span>
+                      <strong>{money(draftTotal)}</strong>
+                    </div>
+                  </>
                 ) : (
-                  <p className="muted small">Non ci sono comande precedenti.</p>
+                  <Empty
+                    title="Componi la comanda"
+                    description="Tocca + accanto a un prodotto per aggiungerlo."
+                  />
                 )}
+                {!!draft.length &&
+                  !draft.some((l) => l.serviceRound === selectedRound) && (
+                    <p className="round-empty">
+                      Nessun prodotto nella {selectedRound}ª portata. Scegli un
+                      piatto dal menu.
+                    </p>
+                  )}
+                <div className="already-sent">
+                  <h3>
+                    Già inviati <span>{sent.length}</span>
+                  </h3>
+                  {sent.length ? (
+                    sent.map((l) => (
+                      <div className="sent-line" key={l.id}>
+                        <div>
+                          <strong>
+                            {l.quantity} × {l.name}
+                          </strong>
+                          <small>{serviceRoundLabel(l.serviceRound)}</small>
+                          {l.note && <small>{l.note}</small>}
+                          <Badge status={l.status} />
+                        </div>
+                        {l.status === 'ready' && (
+                          <button
+                            className="button small"
+                            disabled={busy}
+                            onClick={() =>
+                              silently(
+                                act('line', { lineId: l.id, status: 'served' }),
+                              )
+                            }
+                          >
+                            <Check size={14} />
+                            Servito
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="muted small">
+                      Non ci sono comande precedenti.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="sheet-actions">
+                <button
+                  className="button drinks-send"
+                  disabled={busy || !drinks.length}
+                  onClick={() => prepareSend(true)}
+                >
+                  <GlassWater size={17} />
+                  Invia bevande
+                  {drinks.length
+                    ? ` (${drinks.reduce((a, l) => a + l.quantity, 0)})`
+                    : ''}
+                </button>
+                <button
+                  className="button primary"
+                  disabled={busy || !draft.length}
+                  onClick={() => prepareSend()}
+                >
+                  <Send size={16} />
+                  <span>Invia ai reparti</span>
+                </button>
               </div>
             </aside>
           </div>
         </>
-      )}
-      {draft.length > 0 && (
-        <div className="mobile-order-bar">
-          <div>
-            <strong>
-              {draft.reduce((a, l) => a + l.quantity, 0)} prodotti
-            </strong>
-            <span>{money(draftTotal)}</span>
-          </div>
-          <a className="button primary" href="#order-summary">
-            Vedi comanda
-          </a>
-        </div>
       )}
       {editing && (
         <Modal
@@ -386,13 +600,33 @@ export function Orders() {
                 ...prev,
                 [session.id]: (prev[session.id] ?? []).map((l) =>
                   l.id === editing
-                    ? { ...l, note: String(f.get('note') ?? '') }
+                    ? {
+                        ...l,
+                        serviceRound: Number(f.get('serviceRound')),
+                        note: String(f.get('note') ?? ''),
+                      }
                     : l,
                 ),
               }));
               setEditing(null);
             }}
           >
+            <Field label="Portata della voce" name="serviceRound">
+              <select
+                id="serviceRound"
+                name="serviceRound"
+                defaultValue={String(
+                  draft.find((l) => l.id === editing)?.serviceRound ??
+                    selectedRound,
+                )}
+              >
+                {Array.from({ length: rules.max }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {serviceRoundLabel(i + 1)}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field
               label="Nota per il reparto"
               name="note"
@@ -403,37 +637,94 @@ export function Orders() {
           </ActionForm>
         </Modal>
       )}
+      {details && (
+        <Modal title={details.name} onClose={() => setDetails(null)}>
+          <div className="dish-details">
+            <p>{details.description}</p>
+            <h3>Ingredienti</h3>
+            <p>
+              {details.ingredients?.join(', ') ||
+                'Da verificare con la cucina.'}
+            </p>
+            <h3>Allergeni</h3>
+            <p>
+              {details.allergens
+                ? details.allergens.join(', ') ||
+                  'Nessuno dichiarato nella scheda demo.'
+                : 'Informazioni non disponibili: chiedi alla cucina.'}
+            </p>
+            <h3>Preparazione</h3>
+            <p>{details.preparation || 'Da completare con la cucina.'}</p>
+            <p className="info-box">
+              Scheda dimostrativa. Verificare sempre ingredienti e
+              contaminazioni con il reparto in caso di allergie. I filtri non
+              certificano l’assenza di allergeni.
+            </p>
+            <button
+              className="button primary full"
+              disabled={!details.available || busy || !session}
+              onClick={() => {
+                change(details.id, 1);
+                setDetails(null);
+              }}
+            >
+              Aggiungi alla {selectedRound}ª portata · {money(details.price)}
+            </button>
+          </div>
+        </Modal>
+      )}
       {confirm && (
         <Modal
-          title={`Invia la comanda · Tavolo ${table?.code}`}
+          title={`${drinkOnly ? 'Invia bevande' : 'Invia la comanda'} · Tavolo ${confirmationTable.code}`}
           description="I prodotti saranno suddivisi tra cucina e bar. Puoi aggiungere altre consumazioni con una nuova comanda."
-          onClose={() => setConfirm(false)}
+          onClose={() => setConfirm(null)}
         >
           <ActionForm
-            label="Conferma invio ai reparti"
-            onCancel={() => setConfirm(false)}
+            label={
+              drinkOnly ? 'Conferma invio bevande' : 'Conferma invio ai reparti'
+            }
+            onCancel={() => setConfirm(null)}
             onSubmit={async () => {
-              await act('send', { sessionId: session.id, lines: draft });
-              setDrafts((prev) => ({ ...prev, [session.id]: [] }));
-              setConfirm(false);
+              await act('send', {
+                sessionId: confirmationTable.id,
+                lines: confirm,
+              });
+              const sentIds = new Set(confirm.map((l) => l.id));
+              setDrafts((prev) => ({
+                ...prev,
+                [confirmationTable.id]: (
+                  prev[confirmationTable.id] ?? []
+                ).filter((l) => !sentIds.has(l.id)),
+              }));
+              setConfirm(null);
             }}
           >
             <ul className="round-confirmation">
-              {draft.map((l) => (
+              {confirm.map((l) => (
                 <li key={l.id}>
                   {l.quantity} ×{' '}
                   {s.products.find((p) => p.id === l.productId)?.name} ·{' '}
                   <strong>{serviceRoundLabel(l.serviceRound)}</strong>
+                  {l.note && <small>{l.note}</small>}
                 </li>
               ))}
             </ul>
             <div className="info-box">
-              {draft.reduce((a, l) => a + l.quantity, 0)} prodotti ·{' '}
-              {money(draftTotal)} · cucina e/o bar secondo il menu.
+              {confirm.reduce((a, l) => a + l.quantity, 0)} prodotti ·{' '}
+              {money(
+                confirm.reduce(
+                  (a, l) =>
+                    a +
+                    (s.products.find((p) => p.id === l.productId)?.price ?? 0) *
+                      l.quantity,
+                  0,
+                ),
+              )}{' '}
+              · cucina e/o bar secondo il menu.
             </div>
           </ActionForm>
         </Modal>
       )}
-    </>
+    </div>
   );
 }
