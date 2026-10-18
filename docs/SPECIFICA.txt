@@ -1,0 +1,775 @@
+Specifica di progetto — Piattaforma gestionale multisede per la ristorazione
+1. Contesto e obiettivo
+Realizzare una piattaforma gestionale per attività di ristorazione con più sedi, utilizzabile da amministrazione, responsabili di locale, personale di sala, cucina e bar.
+Il caso iniziale prevede cinque locali, ma il sistema deve poter crescere e, in futuro, essere utilizzato anche da gruppi di ristorazione differenti.
+La piattaforma deve collegare:
+- Prenotazioni e organizzazione della sala.
+- Clienti, fidelizzazione e credito prepagato.
+- Ordinazioni da palmare.
+- Preparazione e stampa delle comande.
+- Menu, ricette e consumi di ingredienti.
+- Magazzino, acquisti e documenti dei fornitori.
+- Food cost e beverage cost.
+- Vendite, incassi e analisi operative.
+- Controllo delle temperature dei frigoriferi.
+- Comunicazioni con i clienti.
+- Controllo centralizzato delle sedi.
+Non deve essere una semplice raccolta di schermate indipendenti: le operazioni devono produrre effetti coerenti nei moduli collegati.
+Esempio:
+Una prenotazione confermata viene associata a un tavolo. All’arrivo si apre la sessione del tavolo. Il cameriere inserisce un ordine dal palmare. Le righe vengono indirizzate a cucina e bar. Le preparazioni registrate generano consumi teorici secondo le ricette. Il pagamento chiude il conto e alimenta i dati degli incassi. Se il cliente è identificato, la visita può contribuire alla fidelizzazione secondo le regole configurate.
+
+2. Stato del progetto e confini della demo
+Il progetto è attualmente in sviluppo. Non bisogna presumere che tutte le funzioni descritte esistano già.
+La prima realizzazione deve essere una demo interattiva con dati fittizi, utile per:
+1. Presentare il progetto a un gruppo di ristorazione.
+2. Mostrare un percorso operativo completo.
+3. Raccogliere osservazioni dal personale.
+4. Definire il perimetro di un successivo progetto pilota.
+La demo non deve:
+- Elaborare pagamenti reali.
+- Emettere documenti fiscali.
+- Inviare realmente messaggi WhatsApp o email.
+- Stampare su dispositivi reali senza configurazione esplicita.
+- Acquisire dati di clienti reali.
+- Presentare temperature simulate come misurazioni reali.
+- Dichiarare integrazioni funzionanti quando sono soltanto dimostrative.
+Ogni funzione simulata deve riportare chiaramente tale condizione.
+La demo deve comunque essere utilizzabile: inserire un ordine, modificarne lo stato e registrare un pagamento simulato deve aggiornare coerentemente le altre schermate.
+3. Struttura multisede
+3.1 Organizzazione
+Prevedere una gerarchia:
+- Gruppo o organizzazione.
+- Locali appartenenti al gruppo.
+- Reparti e aree operative di ciascun locale.
+- Utenti autorizzati.
+Ogni locale può avere:
+- Indirizzo e contatti.
+- Orari di apertura.
+- Turni di servizio.
+- Sale e tavoli.
+- Menu e prezzi.
+- Magazzini.
+- Stampanti e postazioni operative.
+- Personale assegnato.
+- Regole di prenotazione.
+- Regole commerciali locali.
+Le impostazioni possono essere comuni al gruppo oppure specifiche per sede.
+3.2 Separazione dei dati
+Una sede non deve poter visualizzare automaticamente dati riservati di altre sedi.
+L’amministratore del gruppo deve poter:
+- Consultare una singola sede.
+- Confrontare più sedi.
+- Visualizzare risultati consolidati.
+- Gestire configurazioni condivise.
+Predisporre la separazione tra organizzazioni diverse, evitando che un futuro cliente del software possa accedere ai dati di un altro.
+4. Utenti, ruoli e autorizzazioni
+Prevedere almeno questi ruoli:
+Amministratore del gruppo — Simone/amministrazione
+Accesso alle cinque sedi, alle configurazioni e ai dati economici autorizzati.
+Responsabile di locale
+Gestione operativa della propria sede, personale, disponibilità, chiusure e approvazioni previste.
+Reception o gestione prenotazioni
+Gestione richieste, clienti, assegnazione tavoli e comunicazioni.
+Cameriere
+Accesso ai tavoli assegnati o consentiti, inserimento comande e operazioni autorizzate.
+Cucina
+Visualizzazione delle preparazioni di competenza e aggiornamento degli stati.
+Bar
+Gestione delle comande beverage e delle preparazioni assegnate.
+Magazzino/acquisti
+Gestione articoli, ricezioni, inventari e documenti.
+Cliente
+Accesso esclusivamente ai propri dati, prenotazioni e strumenti di fidelizzazione.
+Le autorizzazioni devono distinguere almeno:
+- Consultazione.
+- Inserimento.
+- Modifica.
+- Annullamento.
+- Approvazione.
+- Esportazione.
+- Accesso ai dati economici.
+Operazioni delicate come storni, rimborsi, variazioni del credito, rettifiche di magazzino e modifica delle regole promozionali devono essere tracciate con utente, data e motivazione.
+Non utilizzare account condivisi per operazioni che richiedono responsabilità individuale.
+5. Prenotazioni
+5.1 Accesso pubblico
+Realizzare un percorso prenotazioni accessibile tramite link, collegabile a sito e social del ristorante.
+Il cliente può inviare una richiesta a qualsiasi ora, indipendentemente dagli orari di apertura.
+Questo non significa che il locale debba accettare prenotazioni al di fuori dei propri turni: la raccolta è sempre disponibile, gli orari prenotabili rispettano la configurazione del locale.
+Campi iniziali:
+- Sede.
+- Giorno.
+- Turno o fascia oraria.
+- Numero di persone.
+- Nome.
+- Telefono.
+- Email facoltativa o obbligatoria secondo configurazione.
+- Richieste organizzative.
+- Preferenza di area, se prevista.
+Raccogliere solo le informazioni necessarie. Eventuali dati relativi ad allergie o altre informazioni sensibili richiedono una progettazione specifica e non devono diventare campi obbligatori generici.
+5.2 Disponibilità
+La disponibilità deve tenere conto di:
+- Orari e giorni di apertura.
+- Chiusure straordinarie.
+- Turni.
+- Capienza.
+- Durata prevista della permanenza.
+- Tavoli già assegnati.
+- Tavoli unibili.
+- Eventuali limiti per gruppi numerosi.
+- Aree non disponibili.
+- Margini tra due prenotazioni.
+Non basta sottrarre il numero dei coperti dalla capienza totale: conta anche la combinazione dei tavoli.
+5.3 Modalità di conferma
+Prevedere:
+- Richiesta da approvare manualmente.
+- Conferma automatica per casi configurati.
+Stati:
+- Richiesta ricevuta.
+- In attesa di conferma.
+- Confermata.
+- Arrivato.
+- Al tavolo.
+- Completata.
+- Annullata.
+- Non presentato.
+5.4 Gestione interna
+Lo staff può:
+- Inserire prenotazioni ricevute al telefono, di persona o tramite messaggi.
+- Modificare giorno, orario e numero di persone.
+- Assegnare o cambiare tavolo.
+- Consultare note e storico autorizzato.
+- Gestire una lista d’attesa.
+- Registrare annullamenti e mancate presentazioni.
+- Segnalare un conflitto prima di confermare.
+Una prenotazione non deve generare automaticamente un ordine o un incasso.
+6. Sala e tavoli
+Prevedere una vista grafica e una vista a elenco.
+Ogni tavolo deve avere:
+- Codice o numero.
+- Sala/area.
+- Numero di posti.
+- Posizione nella pianta.
+- Eventuali tavoli abbinabili.
+- Stato operativo.
+Stati possibili:
+- Libero.
+- Riservato.
+- Occupato.
+- In attesa del conto.
+- Da riassettare.
+- Non disponibile.
+La sessione del tavolo deve essere distinta dal tavolo fisico: lo stesso tavolo può ospitare più gruppi nella giornata.
+Funzioni:
+- Arrivo di una prenotazione.
+- Apertura tavolo per clienti senza prenotazione.
+- Assegnazione cameriere.
+- Variazione coperti.
+- Unione tavoli.
+- Trasferimento ordine verso altro tavolo.
+- Separazione del conto.
+- Chiusura della sessione.
+Le operazioni devono mantenere lo storico senza perdere riferimenti a ordini e pagamenti.
+7. Palmari e presa delle ordinazioni
+7.1 Interfaccia
+Interfaccia responsive utilizzabile da smartphone, tablet o palmare compatibile.
+Non presumere che i palmari già presenti nei locali possano eseguire il nuovo software: modello e sistema operativo vanno verificati.
+La schermata deve privilegiare:
+- Pulsanti grandi.
+- Rapidità.
+- Categorie facilmente raggiungibili.
+- Ricerca prodotti.
+- Riepilogo sempre comprensibile.
+- Indicazione chiara del tavolo e della sede.
+- Conferma dell’invio.
+7.2 Composizione ordine
+Il cameriere può inserire:
+- Tavolo.
+- Coperti.
+- Prodotti.
+- Quantità.
+- Varianti.
+- Aggiunte e rimozioni.
+- Note di preparazione.
+- Portate e sequenza di uscita.
+- Eventuale cliente associato.
+Distinguere note operative da variazioni che incidono su prezzo o ingredienti.
+7.3 Ciclo di vita
+Prevedere uno stato generale dell’ordine e stati per le singole righe.
+Esempio:
+- Bozza.
+- Inviato.
+- Accettato dal reparto.
+- In preparazione.
+- Pronto.
+- Servito.
+- Annullato.
+La chiusura economica del conto deve essere separata dallo stato di preparazione.
+7.4 Modifiche dopo l’invio
+Dopo l’invio:
+- Le aggiunte generano nuove righe.
+- Le modifiche generano un aggiornamento tracciato.
+- Gli annullamenti richiedono motivazione.
+- Le comande già preparate non vengono trattate come se non fossero mai esistite.
+- Cucina e bar ricevono indicazioni riconoscibili delle variazioni.
+Un doppio tocco o una riconnessione non devono generare due ordini uguali.
+8. Cucina, bar e stampa comande
+8.1 Smistamento
+Ogni prodotto o categoria deve essere associato al reparto di preparazione.
+Esempio:
+- Primi e secondi → cucina.
+- Cocktail e bevande → bar.
+- Pizze → reparto pizzeria, se presente.
+Un ordine può produrre più comande di reparto mantenendo un unico riferimento.
+8.2 Monitor operativi
+Prevedere una schermata cucina e una schermata bar con:
+- Ordini in arrivo.
+- Tavolo.
+- Ora di invio.
+- Tempo trascorso.
+- Prodotti e varianti.
+- Note evidenziate.
+- Portata.
+- Stato.
+- Segnalazioni di modifica o annullamento.
+8.3 Stampanti
+Obiettivo: riutilizzare le stampanti già presenti, quando tecnicamente compatibili.
+Raccogliere prima:
+- Marca e modello.
+- Collegamento: Ethernet, Wi-Fi, USB o seriale.
+- Protocollo supportato.
+- Dimensione carta.
+- Reparto assegnato.
+- Sistema che le utilizza oggi.
+Non presumere compatibilità dal solo aspetto estetico.
+La soluzione può prevedere:
+- Integrazione diretta compatibile.
+- Servizio locale di stampa installato su un computer o dispositivo nel locale.
+Il servizio locale riceve lavori autorizzati e li inoltra alle stampanti. Non richiedere di esporre le stampanti direttamente su Internet.
+8.4 Contenuto della stampa
+Modello configurabile con:
+- Reparto.
+- Tavolo.
+- Numero ordine.
+- Data e ora.
+- Cameriere.
+- Coperti.
+- Portata.
+- Quantità.
+- Prodotti.
+- Varianti e note.
+- Indicazione di aggiunta, annullamento o ristampa.
+8.5 Affidabilità
+Gestire:
+- Coda di stampa.
+- Errori.
+- Stampante non raggiungibile.
+- Ristampa manuale autorizzata.
+- Storico dei tentativi.
+- Indicazione “ristampa”.
+- Eventuale instradamento alternativo configurato.
+L’esito deve distinguere tra lavoro creato, inviato e confermato dal dispositivo quando il protocollo lo consente. Non sempre è possibile dimostrare che il foglio sia fisicamente uscito.
+La ristampa non deve duplicare ordine, vendita o consumo di magazzino.
+Nella demo mostrare un’anteprima del foglietto e una coda simulata.
+9. Menu, prodotti e ricette
+9.1 Catalogo
+Ogni prodotto vendibile può avere:
+- Codice.
+- Nome.
+- Categoria.
+- Descrizione.
+- Prezzo.
+- Sedi abilitate.
+- Disponibilità.
+- Reparto.
+- Varianti.
+- Ricetta.
+- Informazioni alimentari gestite dal personale competente.
+Prevedere prodotti esauriti, disponibilità temporanee e prezzi differenti per sede.
+Prezzo e configurazione applicati all’ordine devono rimanere storicizzati anche se il menu cambia successivamente.
+9.2 Ricette e distinte ingredienti
+Per ogni piatto:
+- Ingredienti.
+- Quantità per porzione.
+- Unità di misura.
+- Resa.
+- Scarti previsti.
+- Semilavorati.
+- Varianti che modificano i consumi.
+- Versione della ricetta.
+Esempio:
+Una porzione utilizza 100 g di pasta, 30 g di guanciale e altri ingredienti definiti nella ricetta.
+
+Non considerare automaticamente uguali peso acquistato, peso pulito e quantità servita.
+9.3 Unità di misura
+Supportare conversioni coerenti:
+- Chilogrammi e grammi.
+- Litri e millilitri.
+- Pezzi.
+- Confezioni con contenuto definito.
+Non effettuare conversioni arbitrarie tra unità incompatibili.
+10. Magazzino e giacenze
+10.1 Articoli
+Ogni ingrediente o articolo deve avere:
+- Codice.
+- Nome.
+- Categoria.
+- Unità di misura.
+- Fornitori.
+- Costo.
+- Soglia minima.
+- Magazzino.
+- Eventuali lotti e scadenze.
+Distinguere il prodotto venduto dall’articolo di magazzino.
+10.2 Movimenti
+Registrare:
+- Carico da acquisto.
+- Consumo da preparazione.
+- Scarico manuale.
+- Scarto.
+- Reso.
+- Trasferimento tra sedi.
+- Rettifica da inventario.
+Ogni movimento deve avere un’origine verificabile.
+10.3 Scarico automatico
+La politica deve essere esplicita. Per la demo:
+1. All’invio, l’ordine genera il fabbisogno previsto.
+2. Alla conferma della preparazione vengono registrati i consumi teorici.
+3. Un annullamento precedente alla preparazione elimina il fabbisogno, senza consumo.
+4. Un annullamento successivo alla preparazione non rimette automaticamente gli ingredienti in magazzino: richiede classificazione o rettifica.
+Il punto esatto di consumo va validato con il cliente.
+Non presentare il consumo teorico come misurazione fisica. Scarti, porzioni diverse e sprechi richiedono inventari e registrazioni aggiuntive.
+10.4 Inventari
+Permettere:
+- Conteggio fisico.
+- Confronto con giacenza teorica.
+- Evidenza differenze.
+- Approvazione delle rettifiche.
+- Storico.
+- Segnalazione giacenze negative.
+Per trasferimenti multisede prevedere uscita, materiale in transito e ricezione, non una modifica silenziosa di due saldi.
+11. Food cost e beverage cost
+Distinguere almeno:
+Costo teorico della ricetta
+Somma dei costi delle quantità previste degli ingredienti.
+Incidenza sul prezzo
+Rapporto tra costo teorico e prezzo di vendita, con una base di calcolo coerente e dichiarata.
+Consumo effettivo di periodo
+Derivato da inventari e movimenti, distinguendo trasferimenti, scarti e rettifiche.
+Margine di contribuzione
+Ricavo meno costi variabili considerati. Non chiamarlo automaticamente utile netto: personale, affitti e altre spese possono non essere inclusi.
+Funzioni:
+- Costo per piatto.
+- Costo per variante.
+- Costo cocktail e bevande.
+- Evoluzione del costo ingredienti.
+- Prodotti più venduti.
+- Prodotti con maggiore contribuzione.
+- Scostamenti teorico/effettivo.
+- Confronti tra sedi.
+- Avvisi per dati mancanti o ricette incomplete.
+Prevedere porzioni di bottiglia, mescite e cocktail, non solo vendita della confezione intera.
+La metodologia di valorizzazione del magazzino deve essere scelta e documentata. La demo può utilizzare un metodo semplificato dichiarato, senza spacciarlo per un sistema contabile completo.
+12. Clienti e fidelizzazione
+12.1 Scheda cliente
+Dati minimi:
+- Identificativo.
+- Nome.
+- Recapiti necessari.
+- Prenotazioni.
+- Visite.
+- Ordini associati.
+- Preferenze autorizzate.
+- Stato dei consensi.
+- Tessera.
+- Saldi distinti.
+Non associare acquisti a una persona senza una modalità di identificazione adeguata.
+12.2 Tessera punti
+Configurare:
+- Regole di accumulo.
+- Premi.
+- Scadenze.
+- Sedi aderenti.
+- Esclusioni.
+- Effetti di resi e rimborsi.
+12.3 Credito prepagato e bonus
+Separare:
+1. Denaro caricato dal cliente.
+2. Bonus promozionale.
+3. Punti.
+4. Coupon.
+Esempio da validare commercialmente:
+Il cliente carica 100 €. Una regola può generare 10 € di bonus utilizzabile da una visita successiva e con scadenza definita.
+
+Devono essere chiariti:
+- Quando nasce il bonus.
+- Quando è spendibile.
+- Se è utilizzabile nel mese corrente o successivo.
+- Se richiede una spesa minima.
+- Se è cumulabile.
+- Quali prodotti copre.
+- In quali sedi è valido.
+- Come si gestiscono rimborsi e annullamenti.
+Utilizzare un registro di movimenti, non un saldo liberamente modificabile.
+Una ricarica incassata non equivale automaticamente a ricavo da consumazione. Evitare di conteggiare due volte ricarica e successivo utilizzo.
+La gestione reale richiede verifica fiscale, contabile e delle condizioni commerciali prima del rilascio.
+13. Vendite, pagamenti e incassi
+Distinguere chiaramente:
+- Ordini aperti.
+- Vendite.
+- Importi da riscuotere.
+- Pagamenti ricevuti.
+- Rimborsi.
+- Ricariche.
+- Bonus.
+- Sconti.
+Prevedere:
+- Contanti.
+- Carta.
+- Credito prepagato.
+- Pagamenti misti.
+- Pagamenti parziali.
+- Conti separati.
+- Rimborsi autorizzati.
+Un conto chiuso non deve essere modificabile senza un flusso tracciato.
+La demo gestisce solo registrazioni simulate. Non deve fingersi un registratore telematico o un sistema di pagamento.
+L’integrazione con la cassa esistente è un’attività separata dalla stampa delle comande e dipende dal fornitore e dalle interfacce disponibili.
+14. Dashboard e analytics
+14.1 Dati operativi
+- Prenotazioni.
+- Coperti.
+- Arrivi.
+- Cancellazioni.
+- No-show.
+- Tavoli occupati.
+- Tempi di preparazione.
+- Ordini in attesa.
+- Durata delle sessioni.
+14.2 Dati economici
+- Vendite e incassi, separati.
+- Importi giornalieri, settimanali, mensili e su intervallo personalizzato.
+- Scontrino medio per conto.
+- Spesa media per coperto.
+- Ripartizione food/beverage.
+- Sconti.
+- Rimborsi.
+- Metodi di pagamento.
+- Ricariche e utilizzo del credito.
+14.3 Clienti
+Quando i dati sono disponibili e utilizzabili:
+- Clienti nuovi e ricorrenti.
+- Frequenza visite.
+- Spesa media.
+- Prodotti più ordinati.
+- Utilizzo programmi fedeltà.
+- Distribuzione per fasce d’età.
+L’età media non deve essere dedotta. Prevedere eventualmente una fascia d’età facoltativa o dati anagrafici raccolti per finalità definite. Mostrare copertura e limiti del campione, non rappresentarlo come tutta la clientela.
+14.4 Filtri e confronti
+- Sede.
+- Periodo.
+- Giorno della settimana.
+- Fascia oraria.
+- Pranzo/cena.
+- Categoria.
+- Prodotto.
+- Cliente, per utenti autorizzati.
+Ogni indicatore deve avere una definizione: per esempio, cosa comprende “incasso” e quali conti entrano nello “scontrino medio”.
+I dati delle dashboard devono derivare dalle operazioni, non essere numeri decorativi indipendenti.
+15. Fornitori, bolle e documenti
+15.1 Fornitori
+Anagrafica, recapiti, articoli forniti e storico.
+15.2 Ricezione merce
+Registrare:
+- Sede.
+- Fornitore.
+- Documento.
+- Data.
+- Articoli.
+- Quantità.
+- Costi.
+- Lotti e scadenze, quando necessari.
+- Differenze rispetto a quanto atteso.
+- Operatore.
+La conferma della ricezione genera i movimenti di carico.
+Non duplicare i carichi quando lo stesso documento viene importato o allegato nuovamente.
+15.3 Archivio
+Caricamento e consultazione di:
+- DDT.
+- Fatture.
+- Documenti di consegna.
+- Altri documenti organizzati per categoria.
+Ricerca per sede, fornitore, numero e data.
+L’estrazione automatica dei dati dai documenti può essere una fase successiva: se introdotta, richiede revisione prima di generare movimenti.
+16. Frigoriferi e temperature
+Ogni apparecchiatura deve avere:
+- Codice.
+- Sede.
+- Posizione.
+- Tipo.
+- Soglie configurabili.
+- Sensore associato.
+- Stato di connessione.
+- Ultima lettura.
+Gestire:
+- Storico temperature.
+- Superamento soglie.
+- Durata dell’anomalia.
+- Mancanza di nuove letture.
+- Presa in carico.
+- Note dell’operatore.
+- Risoluzione.
+Non utilizzare soglie universali inventate: devono essere configurate in base all’apparecchiatura e alle procedure applicabili.
+Un sensore che non trasmette non equivale a una temperatura nella norma.
+La demo utilizza un simulatore, chiaramente segnalato, per mostrare letture normali, anomalie e perdita di connessione.
+Il software non deve dichiarare automaticamente conformità HACCP né sostituire senza verifica le procedure obbligatorie.
+17. Comunicazioni e notifiche
+Eventi possibili:
+- Richiesta di prenotazione ricevuta.
+- Prenotazione confermata.
+- Modifica.
+- Annullamento.
+- Promemoria.
+- Avviso operativo allo staff.
+- Temperatura anomala.
+- Guasto o errore di stampa.
+- Soglia magazzino.
+Separare comunicazioni di servizio da promozioni commerciali.
+Prevedere:
+- Modelli.
+- Canale.
+- Stato invio.
+- Tentativi.
+- Errori.
+- Consensi e preferenze pertinenti.
+- Protezione da invii duplicati.
+Nella demo utilizzare un centro notifiche simulato. L’integrazione reale con WhatsApp richiede un canale ufficiale configurato; non automatizzare un account personale come soluzione di produzione.
+18. Affidabilità, sicurezza e dati
+18.1 Requisiti essenziali
+- Autenticazione.
+- Autorizzazioni controllate lato server.
+- Separazione delle sedi e delle organizzazioni.
+- Tracciamento delle operazioni delicate.
+- Backup e prova di ripristino.
+- Protezione dei documenti.
+- Gestione delle sessioni.
+- Validazione degli input.
+- Importi trattati con precisione monetaria.
+- Coerenza di date e fusi orari.
+- Registro degli errori senza esporre dati sensibili.
+La sede italiana utilizza Europe/Rome, con corretta gestione del cambio ora.
+18.2 Operazioni simultanee
+Gestire esplicitamente:
+- Due camerieri sullo stesso tavolo.
+- Due conferme della stessa prenotazione.
+- Modifiche contemporanee.
+- Ripetizione di una richiesta dopo timeout.
+- Spesa contemporanea dello stesso credito.
+18.3 Modalità degradata
+Definire cosa funziona senza connessione e cosa no.
+Per la demo è sufficiente mostrare chiaramente lo stato offline e impedire falsi messaggi di successo.
+Per la produzione, l’eventuale operatività offline richiede una fase progettuale dedicata: sincronizzazione, conflitti e prevenzione dei duplicati.
+18.4 Privacy
+Prevedere minimizzazione, accessi controllati, conservazione e gestione delle richieste degli interessati.
+Non dichiarare il prodotto “conforme GDPR” soltanto perché contiene un’informativa o una casella di consenso. La verifica va svolta prima del rilascio reale.
+19. Schermate della demo
+La prima demo deve includere:
+1. Accesso con ruoli dimostrativi.
+2. Dashboard gruppo.
+3. Dashboard singolo locale.
+4. Calendario prenotazioni.
+5. Modulo pubblico di richiesta tavolo.
+6. Pianta sala.
+7. Palmare presa comande.
+8. Monitor cucina.
+9. Monitor bar.
+10. Coda e anteprima stampe.
+11. Menu e ricette.
+12. Magazzino e movimenti.
+13. Ricezione merce.
+14. Clienti.
+15. Tessera punti e credito.
+16. Chiusura conto e pagamenti simulati.
+17. Analytics.
+18. Frigoriferi e alert simulati.
+19. Archivio documenti.
+20. Configurazioni e permessi.
+Le schermate secondarie possono essere più semplici, ma i flussi principali devono essere realmente collegati.
+20. Modello dati indicativo
+Prevedere entità distinte per:
+- Organizzazione.
+- Locale.
+- Utente.
+- Ruolo e autorizzazioni.
+- Assegnazione utente-sede.
+- Sala.
+- Tavolo.
+- Prenotazione.
+- Assegnazione tavoli.
+- Sessione tavolo.
+- Cliente.
+- Preferenze e consensi.
+- Prodotto menu.
+- Prezzo per sede.
+- Variante.
+- Ricetta e versione.
+- Ingrediente.
+- Riga ricetta.
+- Ordine.
+- Riga ordine.
+- Modifica/annullamento ordine.
+- Comanda di reparto.
+- Lavoro di stampa.
+- Stampante.
+- Pagamento.
+- Rimborso.
+- Magazzino.
+- Movimento.
+- Inventario.
+- Trasferimento.
+- Fornitore.
+- Ricezione merce.
+- Documento.
+- Conto credito cliente.
+- Movimento credito.
+- Movimento punti.
+- Regola promozionale.
+- Coupon.
+- Sensore.
+- Lettura temperatura.
+- Alert.
+- Notifica.
+- Evento di audit.
+Usare identificativi stabili e relazioni esplicite. Non affidarsi al nome del cliente o del prodotto come chiave.
+21. Dati dimostrativi
+Utilizzare cinque locali fittizi e dati sufficienti a mostrare:
+- Un locale molto frequentato.
+- Un locale con più cancellazioni.
+- Differenze tra pranzo e cena.
+- Clienti ricorrenti.
+- Prodotti food e beverage.
+- Ricette complete e una incompleta.
+- Un ingrediente sotto soglia.
+- Un inventario con differenza.
+- Un trasferimento tra sedi.
+- Un cliente con credito pagato e bonus separati.
+- Una prenotazione da confermare.
+- Un tavolo con conto diviso.
+- Un errore di stampa.
+- Un frigorifero fuori soglia.
+- Un sensore senza nuove letture.
+Non utilizzare dati reali, marchi o documenti del cliente originario senza autorizzazione.
+22. Percorso dimostrativo principale
+La demo deve consentire questa sequenza:
+1. Il cliente invia una richiesta di tavolo.
+2. La richiesta appare nel calendario.
+3. Lo staff la conferma e assegna un tavolo.
+4. Il cliente arriva e viene aperta la sessione.
+5. Il cameriere inserisce piatti e bevande dal palmare.
+6. La comanda viene divisa tra cucina e bar.
+7. Compare l’anteprima delle rispettive stampe.
+8. I reparti aggiornano la preparazione.
+9. Vengono registrati i consumi teorici degli ingredienti.
+10. Un prodotto aggiunto viene inviato senza duplicare i precedenti.
+11. Il conto viene pagato con un metodo simulato.
+12. Il credito o i punti vengono aggiornati secondo le regole.
+13. Dashboard e analisi mostrano gli effetti dell’operazione.
+Il percorso deve essere ripetibile e i dati demo ripristinabili.
+23. Criteri di accettazione
+La demo è soddisfacente se:
+- Le cinque sedi hanno dati separati.
+- L’amministratore vede il consolidato.
+- Un cameriere non vede informazioni economiche riservate.
+- Una prenotazione rispetta disponibilità e turni.
+- L’ordine dal palmare raggiunge i reparti corretti.
+- Varianti e note compaiono correttamente nelle comande.
+- Un invio ripetuto non duplica l’ordine.
+- Una ristampa non modifica il magazzino.
+- Un annullamento dopo la preparazione non ripristina automaticamente ingredienti consumati.
+- I movimenti di magazzino sono ricostruibili.
+- Una ricezione merce non viene caricata due volte.
+- Credito, bonus e punti restano distinti.
+- Ricariche e consumazioni non duplicano gli incassi o i ricavi.
+- I dati economici hanno definizioni verificabili.
+- Gli alert distinguono anomalia e assenza di letture.
+- Le integrazioni simulate sono riconoscibili.
+- La demo non effettua invii, pagamenti o operazioni fiscali reali.
+24. Sviluppo progressivo
+Fase 1 — Demo collegata
+Priorità al percorso prenotazione → tavolo → ordine → cucina/bar → consumo teorico → pagamento simulato → dashboard.
+Gli altri moduli devono mostrare la direzione del prodotto senza fingere completezza produttiva.
+Fase 2 — Progetto pilota su un locale
+Definire:
+- Funzioni incluse.
+- Hardware.
+- Utenti.
+- Integrazioni autorizzate.
+- Durata della prova.
+- Formazione.
+- Orari di assistenza.
+- Gestione delle anomalie.
+- Criteri per continuare.
+- Piano di ritorno agli strumenti precedenti.
+Non introdurre simultaneamente tutti i moduli durante un servizio reale.
+Fase 3 — Estensione alle cinque sedi
+Solo dopo verifica del pilota:
+- Configurazione sedi.
+- Importazione dati approvati.
+- Formazione dei responsabili.
+- Verifica stampanti.
+- Controllo della rete.
+- Attivazione progressiva.
+- Monitoraggio e assistenza concordati.
+Fase 4 — Moduli avanzati
+Approfondire:
+- Magazzino e ricette avanzate.
+- Food cost effettivo.
+- Credito prepagato.
+- Integrazioni fiscali.
+- Sensori reali.
+- Analytics avanzati.
+- Operatività offline.
+- Eventuale distribuzione ad altri gruppi.
+25. Questioni da chiarire con Simone prima della produzione
+1. Quali gestionali e casse utilizzano?
+2. Quali funzioni vogliono mantenere?
+3. I cinque locali hanno la stessa organizzazione?
+4. Quali palmari e stampanti sono già presenti?
+5. Chi gestisce rete e assistenza tecnica?
+6. Come vengono prese oggi le prenotazioni?
+7. Sono già disponibili ricette e grammature attendibili?
+8. Come vengono registrati acquisti, scarti e inventari?
+9. Esiste un magazzino centrale?
+10. Come funzionano attualmente fidelity, ricariche e promozioni?
+11. Chi deve vedere i dati economici?
+12. Quali sono le tre priorità operative?
+13. Chi approva il progetto?
+14. Quale locale è adatto al pilota?
+15. Quale assistenza si aspettano durante il servizio?
+26. Istruzioni finali per Codex
+Realizza inizialmente una demo, non una piattaforma produttiva dichiarata completa.
+Prima di sviluppare:
+- Esamina l’eventuale progetto esistente e le sue istruzioni.
+- Identifica cosa sia già funzionante.
+- Non sovrascrivere il lavoro esistente.
+- Proponi una struttura tecnica adatta alla demo e alla crescita successiva.
+- Mantieni separati dominio operativo, interfaccia e adattatori per integrazioni.
+- Non scegliere servizi a pagamento né attivare account senza autorizzazione.
+- Non collegare dispositivi reali.
+- Non utilizzare credenziali o dati reali.
+Durante lo sviluppo:
+- Privilegia un flusso completo e coerente rispetto a molte schermate superficiali.
+- Utilizza dati demo persistenti e ripristinabili.
+- Gestisci caricamenti, errori, assenza di dati e azioni non consentite.
+- Prevedi test per ordini, pagamenti, credito e magazzino.
+- Documenta le formule economiche.
+- Rendi visibili simulazioni e limiti.
+- Non presentare pulsanti senza effetto come funzioni terminate.
+Alla consegna, fornisci:
+1. Istruzioni per avviare la demo.
+2. Account dimostrativi.
+3. Percorso consigliato per presentarla.
+4. Elenco delle funzioni operative.
+5. Elenco delle simulazioni.
+6. Elenco delle integrazioni ancora da verificare.
+7. Test eseguiti e problemi noti.
+8. Passi necessari per arrivare al pilota.
+Obiettivo finale della demo: permettere a Simone e ai responsabili dei locali di capire il progetto, provarne il flusso principale e decidere quali parti adottare, senza confondere una dimostrazione con un sistema già pronto per il servizio.
