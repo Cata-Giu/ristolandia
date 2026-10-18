@@ -191,6 +191,9 @@ export function seed(now = Date.now()) {
     alerts: [],
     audit: [],
     receipts: [],
+    documents: [],
+    cashMovements: [],
+    settings: { tipTaxBasisPoints: null },
     transfers: [],
     idempotency: {},
   };

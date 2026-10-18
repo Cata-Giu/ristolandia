@@ -10,13 +10,13 @@ Flusso operativo implementato: richiesta cliente → conferma e tavolo → arriv
 
 ## Verifiche della consegna
 
-- `npm test`: 27 test dominio/API/proxy, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
+- `npm test`: 40 test dominio/API/proxy/documenti, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
 - `npm run build`: typecheck TypeScript e build Vite, passati.
 - `npm run format:check`: formattazione coerente tramite Prettier.
-- `npm run test:browser`: 7 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 12 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
+- `npm run test:browser`: 12 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 13 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
 - Audit statico Frontend Design Premium in modalità strict: 0 errori/avvisi; evidenza premium-audit.json. Non sostituisce i test browser.
 - Lint ufficiale DESIGN.md: 0 errori; 6 avvisi di token cromatici globali non referenziati da una specifica voce componente. I token sono implementati nel CSS globale e documentati nella mappatura.
-- Screenshot di verifica: dashboard-desktop.png e sala-mobile.png in questa cartella.
+- Screenshot di verifica: dashboard-desktop.png, sala-mobile.png, cassa-demo.png e bolle-archivio.png in questa cartella.
 
 Durante la revisione sono stati corretti: overflow mobile dei cataloghi e delle tabelle, nomi accessibili dei campi, focus dei dialoghi e della navigazione mobile, contrasto testo/stati, coerenza del set demo e costi ingredienti nell’unità base. La barra mobile del palmare rende raggiungibile il riepilogo senza scorrere l'intero catalogo.
 
@@ -32,7 +32,17 @@ Aggiunto supporto alle origini HTTP loopback sulla sola porta 5173, attivo esclu
 
 Implementata la scelta da 1ª a 20ª uscita per prodotto, distinta dalla categoria del menu. Il selettore principale si applica alle nuove aggiunte; ogni riga è modificabile prima dell'invio. Righe con lo stesso prodotto in uscite diverse hanno identità, quantità e note indipendenti, conservate nella bozza per account/sessione. Il server valida e fotografa `serviceRound` su ogni riga; lo restituisce alle proiezioni di reparto. Cucina, bar e anteprime ordinano le righe per uscita; i dati storici senza uscita restano non specificati. Limiti/default condivisi in `shared/service-rounds.json`.
 
-Verificati: persistenza, idempotenza e rifiuto uscite non valide; scenario browser con stesso piatto in uscite diverse, modifica, nota, ricaricamento bozza, raggruppamento cucina e stampa. 27 test dominio/API/proxy e 7 scenari browser passati, build/typecheck riusciti.
+Verificati: persistenza, idempotenza e rifiuto uscite non valide; scenario browser con stesso piatto in uscite diverse, modifica, nota, ricaricamento bozza, raggruppamento cucina e stampa. 40 test dominio/API/proxy/documenti e 7 scenari browser passati, build/typecheck riusciti.
+
+## Estensione cassa e bolle
+
+Cassa: aggiunte dal catalogo con invio ai reparti; correzioni motivate di quantità/prezzo e sconti di riga in euro/percentuale; annullamenti senza cancellazione dello storico. Le quantità preparate restano immutate dopo ready/served; le quantità economiche sono distinte. Conti chiusi bloccati e correzioni sotto il pagato rifiutate. Le voci precedenti e il menu non vengono riscritti. Gli annullamenti recenti restano visibili nel monitor cucina per 30 minuti e generano una comanda simulata riconoscibile di annullamento.
+
+Contanti: registro per taglio e giornata demo, fondo separato dagli incassi, calcolatrice di somma consegnata, resto minimo in pezzi con disponibilità effettiva. I pagamenti aggiornano contemporaneamente registri, tagli, credito e stato conto. Incassi storici senza dettaglio dei tagli esclusi dal fondo disponibile. Mance separate, aliquota nulla fino a scelta esplicita admin, stima d'imposta e aliquota fotografate per pagamento.
+
+Documenti: originali persistenti con hash, sede e autorizzazioni; estrazione locale PDF/OCR, classificazione assistita cucina/bevande/materiali sala; carico multiriga solo dopo verifica, costi mancanti dichiarati, doppio file e doppio documento impediti. Archivio ricercabile e collegamenti ai movimenti, download protetti. Bozze di verifica conservate per utente/documento nello stesso browser. Setup lettori in scripts/setup-documents.sh e CI. OCR verificato qui anche con il modello inglese disponibile, segnalato nella UI; installazione italiana predisposta per Codespaces.
+
+Verifiche: 40 test dominio/API/proxy/documenti e 12 scenari browser, comprese foto realmente lette tramite Tesseract, PDF testuale, persistenza dell'originale dopo riavvio, permessi, correzioni/sconti, errori di resto e pagamento su telefono. Build/typecheck e formattazione verificati.
 
 ## Limiti da conoscere prima di continuare
 
@@ -41,8 +51,8 @@ Verificati: persistenza, idempotenza e rifiuto uscite non valide; scenario brows
 - Giornata fissata al seed, rinnovo mediante reset. Slot/durata/capienza semplici, niente unione tavoli, riassegnazione avanzata, liste attesa o no-show operativo.
 - Note operative; niente varianti commerciali con modifica prezzi/ingredienti. Catalogo consultivo.
 - Clienti pubblici non vengono associati automaticamente ad anagrafiche esistenti. Per il credito usare tavolo 01 del set iniziale.
-- Bonus consultivo, punti secondo regola esplicitamente demo; niente rimborsi, storni, spendibilità bonus o integrazione fiscale.
-- Ricezione un articolo per documento; niente upload documenti, lotti, scadenze o OCR.
+- Bonus consultivo e punti demo; correzioni/sconti/annullamenti prima della chiusura con audit. Niente rimborsi su conti chiusi, spendibilità bonus o integrazione fiscale.
+- Bolle: upload e archivio JPEG/PNG/PDF, estrazione testo/OCR locale e verifica prima del carico multiriga. Non implementati lotti, scadenze e riconoscimento universale dei formati. Originali sul volume del server, da includere nei backup.
 - Polling 5 secondi; offline blocca operazioni, non sincronizza dati. Uno snapshot JSON SQLite è una scelta demo.
 - Allarmi generati dal simulatore; presa in carico, nessuna risoluzione o misura reale presunta. Code di stampa e messaggi sono registri dimostrativi.
 - I test automatici non certificano accessibilità, sicurezza o conformità normativa. Non verificati dispositivi reali, Safari/iOS, hardware di cassa/stampa o carico produttivo.

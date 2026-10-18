@@ -1,3 +1,13 @@
+import {
+  lineAmounts,
+  validCounts,
+  countTotal,
+  addCounts,
+  suggestChange,
+  taxOnTip,
+  MAX_CHANGE,
+} from '../shared/finance.mjs';
+import { drawer } from './cash.mjs';
 import serviceRounds from '../shared/service-rounds.json' with { type: 'json' };
 import { randomUUID } from 'node:crypto';
 import { seed, USERS } from './seed.mjs';
@@ -20,9 +30,14 @@ const allowed = {
   arrive: ['admin', 'manager', 'reception'],
   open: ['admin', 'manager', 'reception', 'waiter'],
   clean: ['admin', 'manager', 'reception', 'waiter'],
-  send: ['admin', 'manager', 'waiter'],
+  send: ['admin', 'manager', 'waiter', 'cashier'],
   line: ['admin', 'manager', 'kitchen', 'bar', 'waiter'],
-  cancel: ['admin', 'manager'],
+  cancel: ['admin', 'manager', 'cashier'],
+  'receive-document': ['admin', 'manager', 'warehouse'],
+  'adjust-line': ['admin', 'manager', 'cashier'],
+  'cash-fund': ['admin', 'manager', 'cashier'],
+  'tip-tax': ['admin'],
+  'close-account': ['admin', 'manager', 'cashier'],
   pay: ['admin', 'manager', 'cashier'],
   topup: ['admin', 'manager', 'cashier'],
   receive: ['admin', 'manager', 'warehouse'],
@@ -39,7 +54,7 @@ export function totals(s, session) {
     orders
       .flatMap((o) => o.lines)
       .filter((l) => l.status !== 'cancelled')
-      .reduce((a, l) => a + l.price * l.quantity, 0);
+      .reduce((a, l) => a + lineAmounts(l).total, 0);
   const paid = s.payments
     .filter((p) => p.sessionId === session.id)
     .reduce((a, p) => a + p.amount, 0);
@@ -89,6 +104,26 @@ function session(s, u, sessionId) {
   venue(s, u, r.venueId);
   fail(r.status === 'open', 'Il conto è già chiuso', 409);
   return r;
+}
+function closeSession(s, se, total) {
+  se.status = 'closed';
+  se.closedAt = Date.now();
+  s.tables.find((t) => t.id === se.tableId).status = 'cleaning';
+  for (const b of s.bookings.filter(
+    (b) => b.tableId === se.tableId && b.status === 'seated',
+  ))
+    b.status = 'completed';
+  if (se.customerId && total > 0) {
+    s.customers.find((c) => c.id === se.customerId).visits++;
+    s.wallet.push({
+      id: id(),
+      customerId: se.customerId,
+      kind: 'points',
+      amount: Math.floor(total / 100),
+      source: se.id,
+      at: Date.now(),
+    });
+  }
 }
 function matchBooking(a, b) {
   return (
@@ -345,7 +380,7 @@ export function apply(s, u, action, p, key) {
     const o = s.orders.find((x) => x.lines.some((l) => l.id === p.lineId));
     fail(o, 'Riga non trovata', 404);
     venue(s, u, o.venueId);
-    session(s, u, o.sessionId);
+    const openSession = session(s, u, o.sessionId);
     const l = o.lines.find((l) => l.id === p.lineId);
     fail(
       !['kitchen', 'bar'].includes(u.role) || l.department === u.role,
@@ -355,6 +390,23 @@ export function apply(s, u, action, p, key) {
     if (action === 'cancel') {
       fail(l.status !== 'cancelled', 'Riga già annullata', 409);
       fail(text(p.reason), 'La motivazione è obbligatoria');
+      fail(
+        totals(s, openSession).total - lineAmounts(l).total >=
+          totals(s, openSession).paid,
+        'La correzione scenderebbe sotto i pagamenti già registrati',
+        409,
+      );
+      l.cancelledAt = Date.now();
+      s.prints.push({
+        id: id(),
+        venueId: o.venueId,
+        orderId: o.id,
+        department: l.department,
+        status: 'queued',
+        attempt: 1,
+        at: l.cancelledAt,
+        cancellation: true,
+      });
       l.cancelledFrom = l.status;
       l.status = 'cancelled';
       l.reason = p.reason;
@@ -401,6 +453,141 @@ export function apply(s, u, action, p, key) {
             ? 'Portata servita'
             : 'Preparazione avviata';
     }
+  } else if (action === 'adjust-line') {
+    const order = s.orders.find((o) => o.lines.some((l) => l.id === p.lineId));
+    fail(order, 'Riga non trovata', 404);
+    const se = session(s, u, order.sessionId);
+    const l = order.lines.find((l) => l.id === p.lineId);
+    fail(
+      p.expectedLineVersion === undefined ||
+        p.expectedLineVersion === (l.adjustments?.length ?? 0),
+      'La riga è stata modificata: riapri la correzione',
+      409,
+    );
+    fail(
+      l.status !== 'cancelled',
+      'Una riga annullata non può essere modificata',
+      409,
+    );
+    fail(text(p.reason), 'Motivazione della correzione obbligatoria');
+    fail(
+      Number.isInteger(p.quantity) && p.quantity >= 1 && p.quantity <= 30,
+      'Quantità da 1 a 30',
+    );
+    fail(
+      Number.isSafeInteger(p.price) && p.price >= 0 && p.price <= 100000000,
+      'Prezzo unitario non valido',
+    );
+    fail(
+      p.discount &&
+        ['none', 'percent', 'euro'].includes(p.discount.kind) &&
+        Number.isSafeInteger(p.discount.value) &&
+        p.discount.value >= 0,
+      'Sconto non valido',
+    );
+    fail(
+      p.discount.kind !== 'percent' || p.discount.value <= 10000,
+      'Lo sconto percentuale non può superare il 100%',
+    );
+    fail(
+      p.discount.kind !== 'none' || p.discount.value === 0,
+      'Sconto non valido',
+    );
+    const next = {
+      ...l,
+      billQuantity: p.quantity,
+      price: p.price,
+      discount: p.discount,
+    };
+    const amounts = lineAmounts(next);
+    fail(amounts.total >= 0, 'Lo sconto in euro supera il totale della riga');
+    fail(
+      totals(s, se).total - lineAmounts(l).total + amounts.total >=
+        totals(s, se).paid,
+      'La correzione scenderebbe sotto i pagamenti già registrati',
+      409,
+    );
+    const before = {
+      quantity: l.billQuantity ?? l.quantity,
+      price: l.price,
+      discount: l.discount ?? { kind: 'none', value: 0 },
+    };
+    if (['sent', 'preparing'].includes(l.status) && l.quantity !== p.quantity) {
+      l.operationalChanges ??= [];
+      l.operationalChanges.push({
+        at: Date.now(),
+        from: l.quantity,
+        to: p.quantity,
+        reason: 'Quantità aggiornata in cassa',
+      });
+      l.quantity = p.quantity;
+      s.prints.push({
+        id: id(),
+        venueId: order.venueId,
+        orderId: order.id,
+        department: l.department,
+        status: 'queued',
+        attempt: 1,
+        at: Date.now(),
+        correction: true,
+      });
+    }
+    l.billQuantity = p.quantity;
+    l.price = p.price;
+    l.discount = p.discount;
+    l.adjustments ??= [];
+    l.adjustments.push({
+      at: Date.now(),
+      user: u.name,
+      reason: p.reason,
+      before,
+      after: { quantity: p.quantity, price: p.price, discount: p.discount },
+    });
+    audit(s, u, order.venueId, 'adjust-line', l.id, p.reason);
+    result.message = 'Riga corretta e variazione tracciata';
+  } else if (action === 'cash-fund') {
+    venue(s, u, p.venueId);
+    fail(
+      validCounts(p.counts) &&
+        countTotal(p.counts) > 0 &&
+        countTotal(p.counts) <= 100000000,
+      'Inserisci i tagli realmente disponibili',
+    );
+    fail(text(p.reason), 'Motivazione del versamento obbligatoria');
+    s.cashMovements ??= [];
+    s.cashMovements.push({
+      id: id(),
+      venueId: p.venueId,
+      day: s.day,
+      counts: p.counts,
+      type: 'fund',
+      source: p.reason,
+      user: u.name,
+      at: Date.now(),
+    });
+    audit(s, u, p.venueId, 'cash-fund', 'drawer', p.reason);
+    result.message = 'Fondo contanti aggiornato per taglio';
+  } else if (action === 'tip-tax') {
+    fail(
+      Number.isInteger(p.basisPoints) &&
+        p.basisPoints >= 0 &&
+        p.basisPoints <= 10000,
+      'Aliquota da 0 a 100%, con massimo due decimali',
+    );
+    fail(text(p.reason), 'Motivazione della configurazione obbligatoria');
+    s.settings ??= {};
+    s.settings.tipTaxBasisPoints = p.basisPoints;
+    audit(s, u, 'centro', 'tip-tax', 'settings', p.reason);
+    result.message =
+      'Aliquota simulata mance aggiornata per i prossimi pagamenti';
+  } else if (action === 'close-account') {
+    const se = session(s, u, p.sessionId),
+      t = totals(s, se);
+    fail(t.due === 0, 'Il conto ha ancora un residuo', 409);
+    fail(text(p.reason), 'Motivazione di chiusura obbligatoria');
+    closeSession(s, se, t.total);
+    audit(s, u, se.venueId, 'close-account', se.id, p.reason);
+    result.message = 'Conto saldato chiuso senza creare nuovi pagamenti';
   } else if (action === 'pay') {
     const se = session(s, u, p.sessionId);
     fail(cents(p.amount), 'Importo non valido');
@@ -408,9 +595,53 @@ export function apply(s, u, action, p, key) {
       ['cash', 'card', 'credit'].includes(p.method),
       'Metodo non disponibile',
     );
-    const t = totals(s, se);
+    const t = totals(s, se),
+      tip = p.tip === undefined ? 0 : p.tip;
+    fail(
+      Number.isSafeInteger(tip) && tip >= 0 && tip <= 100000000,
+      'Mancia non valida',
+    );
     fail(p.amount <= t.due, 'L’importo supera il residuo da pagare', 409);
     fail(t.total > 0, 'Il conto non contiene consumazioni');
+    const rate = s.settings?.tipTaxBasisPoints ?? null;
+    fail(
+      !tip || rate !== null,
+      'Configura prima l’aliquota simulata sulle mance nelle Impostazioni',
+    );
+    fail(
+      p.method !== 'credit' || tip === 0,
+      'La mancia non può essere pagata con credito prepagato',
+    );
+    const paymentId = id();
+    let changeCounts,
+      changeAmount = 0;
+    if (p.method === 'cash') {
+      fail(
+        cents(p.cashReceived) &&
+          validCounts(p.cashReceivedCounts) &&
+          countTotal(p.cashReceivedCounts) === p.cashReceived,
+        'I tagli ricevuti devono corrispondere alla somma consegnata',
+      );
+      changeAmount = p.cashReceived - p.amount - tip;
+      fail(
+        changeAmount >= 0,
+        'Contanti consegnati insufficienti per conto e mancia',
+      );
+      fail(
+        changeAmount <= MAX_CHANGE,
+        'Il resto supera il limite demo di 2.000 euro',
+      );
+      const available = addCounts(
+        drawer(s, se.venueId).counts,
+        p.cashReceivedCounts,
+      );
+      changeCounts = suggestChange(changeAmount, available);
+      fail(
+        changeCounts !== null,
+        'Resto non componibile con i tagli disponibili: modifica il contante ricevuto o integra il fondo',
+        409,
+      );
+    }
     if (p.method === 'credit') {
       fail(se.customerId, 'Nessun cliente identificato su questo tavolo');
       fail(
@@ -427,34 +658,43 @@ export function apply(s, u, action, p, key) {
         at: Date.now(),
       });
     }
-    s.payments.push({
-      id: id(),
+    const payment = {
+      id: paymentId,
       venueId: se.venueId,
       sessionId: se.id,
       amount: p.amount,
       method: p.method,
+      tip,
+      tipTaxBasisPoints: tip ? rate : null,
+      tipTax: tip ? taxOnTip(tip, rate) : 0,
       at: Date.now(),
-    });
-    if (p.amount === t.due) {
-      se.status = 'closed';
-      se.closedAt = Date.now();
-      s.tables.find((t) => t.id === se.tableId).status = 'cleaning';
-      for (const b of s.bookings.filter(
-        (b) => b.tableId === se.tableId && b.status === 'seated',
-      ))
-        b.status = 'completed';
-      if (se.customerId) {
-        s.customers.find((c) => c.id === se.customerId).visits++;
-        s.wallet.push({
-          id: id(),
-          customerId: se.customerId,
-          kind: 'points',
-          amount: Math.floor(t.total / 100),
-          source: se.id,
-          at: Date.now(),
-        });
-      }
+    };
+    if (p.method === 'cash') {
+      Object.assign(payment, {
+        cashReceived: p.cashReceived,
+        cashReceivedCounts: p.cashReceivedCounts,
+        changeAmount,
+        changeCounts,
+      });
+      s.cashMovements ??= [];
+      s.cashMovements.push({
+        id: id(),
+        venueId: se.venueId,
+        day: s.day,
+        type: 'payment',
+        source: paymentId,
+        user: u.name,
+        at: Date.now(),
+        counts: addCounts(
+          p.cashReceivedCounts,
+          Object.fromEntries(
+            Object.entries(changeCounts).map(([d, n]) => [d, -n]),
+          ),
+        ),
+      });
     }
+    s.payments.push(payment);
+    if (p.amount === t.due) closeSession(s, se, t.total);
     audit(s, u, se.venueId, 'pay', se.id);
     result.message =
       se.status === 'closed'
@@ -486,6 +726,152 @@ export function apply(s, u, action, p, key) {
     });
     audit(s, u, p.venueId, 'topup', p.customerId);
     result.message = 'Ricarica simulata registrata, separata dalle vendite';
+  } else if (action === 'receive-document') {
+    const document = (s.documents ?? []).find((d) => d.id === p.documentId);
+    fail(document, 'Documento non trovato', 404);
+    venue(s, u, document.venueId);
+    fail(
+      document.status !== 'received',
+      'Bolla già caricata: duplicazione impedita',
+      409,
+    );
+    fail(
+      text(p.supplier, 100) && text(p.documentNumber, 60),
+      'Fornitore e numero bolla obbligatori',
+    );
+    const parsed = new Date(p.documentDay + 'T12:00:00Z');
+    fail(
+      typeof p.documentDay === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(p.documentDay) &&
+        Number.isFinite(parsed.getTime()) &&
+        parsed.toISOString().slice(0, 10) === p.documentDay,
+      'Data documento non valida',
+    );
+    const normalized = (v) => v.trim().toLowerCase().replace(/\s+/g, ' ');
+    const source = `${document.venueId}|${normalized(p.supplier)}|${normalized(p.documentNumber)}|${p.documentDay.slice(0, 4)}`;
+    fail(
+      !s.receipts.some(
+        (r) =>
+          r.source === source ||
+          (!r.documentDay &&
+            r.venueId === document.venueId &&
+            normalized(r.supplier ?? '') === normalized(p.supplier) &&
+            normalized(r.document ?? '') === normalized(p.documentNumber)),
+      ),
+      'Documento del fornitore già ricevuto: verifica numero e anno',
+      409,
+    );
+    fail(
+      Array.isArray(p.rows) && p.rows.length > 0 && p.rows.length <= 100,
+      'Conferma da 1 a 100 righe per bolla',
+    );
+    const reviewed = p.rows.map((row, index) => {
+      fail(row && typeof row === 'object', `Riga ${index + 1} non valida`);
+      fail(
+        Number.isFinite(row.quantity) &&
+          row.quantity > 0 &&
+          row.quantity <= 1000000,
+        `Quantità non valida alla riga ${index + 1}`,
+      );
+      fail(
+        ['g', 'kg', 'ml', 'l', 'pz'].includes(row.unit),
+        `Specifica unità e contenuto della confezione alla riga ${index + 1}`,
+      );
+      fail(
+        row.cost === null ||
+          (Number.isFinite(row.cost) && row.cost >= 0 && row.cost <= 100000000),
+        `Costo non valido alla riga ${index + 1}`,
+      );
+      fail(
+        ['kitchen', 'beverage', 'supplies'].includes(row.catalogCategory),
+        `Categoria non valida alla riga ${index + 1}`,
+      );
+      const item = s.ingredients.find((i) => i.id === row.ingredientId);
+      if (row.ingredientId !== 'new') {
+        fail(item, `Articolo non trovato alla riga ${index + 1}`);
+        fail(
+          row.unit === item.unit,
+          `Usa l’unità ${item.unit} dell’articolo ${item.name}`,
+        );
+      } else {
+        fail(
+          text(row.name, 100),
+          `Nome articolo obbligatorio alla riga ${index + 1}`,
+        );
+        fail(
+          !s.ingredients.some(
+            (i) =>
+              normalized(i.name) === normalized(row.name) &&
+              i.unit === row.unit,
+          ),
+          `L’articolo ${row.name} è già presente: selezionalo dal catalogo`,
+        );
+      }
+      return { ...row, ingredientId: item?.id ?? null };
+    });
+    const receiptId = id();
+    for (const row of reviewed) {
+      if (!row.ingredientId) {
+        let item = s.ingredients.find(
+          (i) =>
+            normalized(i.name) === normalized(row.name) && i.unit === row.unit,
+        );
+        if (!item) {
+          item = {
+            id: id(),
+            name: row.name.trim(),
+            unit: row.unit,
+            min: 0,
+            cost: row.cost ?? 0,
+            costMissing: row.cost === null,
+            catalogCategory: row.catalogCategory,
+            quantity: 0,
+          };
+          s.ingredients.push(item);
+        }
+        row.ingredientId = item.id;
+      }
+      s.movements.push({
+        id: id(),
+        venueId: document.venueId,
+        ingredientId: row.ingredientId,
+        quantity: row.quantity,
+        type: 'receipt',
+        source: receiptId,
+        documentId: document.id,
+        at: Date.now(),
+      });
+    }
+    s.receipts.push({
+      id: receiptId,
+      source,
+      venueId: document.venueId,
+      supplier: p.supplier.trim(),
+      document: p.documentNumber.trim(),
+      documentDay: p.documentDay,
+      documentId: document.id,
+      rows: reviewed,
+      at: Date.now(),
+      user: u.name,
+    });
+    Object.assign(document, {
+      status: 'received',
+      receiptId,
+      supplier: p.supplier.trim(),
+      documentNumber: p.documentNumber.trim(),
+      documentDay: p.documentDay,
+      receivedAt: Date.now(),
+      reviewedRows: reviewed,
+    });
+    audit(
+      s,
+      u,
+      document.venueId,
+      'receive-document',
+      document.id,
+      'Carico confermato dopo verifica della bolla',
+    );
+    result.message = 'Bolla archiviata e merce caricata una sola volta';
   } else if (action === 'receive' || action === 'inventory') {
     venue(s, u, p.venueId);
     fail(
@@ -674,7 +1060,14 @@ export function project(s, u, venueId) {
           .map((l) =>
             econ.includes(u.role)
               ? l
-              : (({ recipe, price, ...rest }) => rest)(l),
+              : (({
+                  recipe,
+                  price,
+                  billQuantity,
+                  discount,
+                  adjustments,
+                  ...rest
+                }) => rest)(l),
           ),
       })),
     bookings: ['admin', 'manager', 'reception'].includes(u.role)
@@ -692,6 +1085,10 @@ export function project(s, u, venueId) {
   };
   if (econ.includes(u.role)) {
     base.payments = filter(s.payments);
+    base.tipTaxBasisPoints = s.settings?.tipTaxBasisPoints ?? null;
+    base.drawers = s.venues
+      .filter((v) => venues.includes(v.id))
+      .map((v) => drawer(s, v.id));
     base.customers = s.customers
       .filter(
         (c) =>
@@ -712,12 +1109,24 @@ export function project(s, u, venueId) {
   if (['admin', 'manager', 'warehouse'].includes(u.role)) {
     base.ingredients = s.ingredients.map((i) => ({
       ...i,
+      catalogCategory:
+        i.catalogCategory ??
+        (s.products.some((p) => p.department === 'bar' && p.recipe?.[i.id]) &&
+        !s.products.some((p) => p.department === 'kitchen' && p.recipe?.[i.id])
+          ? 'beverage'
+          : 'kitchen'),
       quantity: venues.reduce((a, v) => a + stock(s, v, i.id), 0),
       expected: filter(s.orders)
         .flatMap((o) => o.lines)
         .filter((l) => ['sent', 'preparing'].includes(l.status))
         .reduce((a, l) => a + (l.recipe?.[i.id] ?? 0) * l.quantity, 0),
     }));
+    base.documents = filter(s.documents ?? []).map(
+      ({ text, suggestedRows, hash, reviewedRows, ...document }) => ({
+        ...document,
+        rowCount: (reviewedRows ?? suggestedRows ?? []).length,
+      }),
+    );
     base.movements = filter(s.movements);
     base.receipts = filter(s.receipts);
     base.transfers = s.transfers.filter(
@@ -752,4 +1161,4 @@ export function view(s, u, v) {
   }
   return project(s, u, v);
 }
-export { USERS };
+export { USERS, venue as authorizeVenue, audit as recordAudit };

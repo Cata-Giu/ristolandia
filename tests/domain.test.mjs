@@ -84,7 +84,13 @@ test('percorso prenotazione → tavolo → reparti → consumi → pagamento e r
   assert.equal(o.lines.length, previousLines);
   const se = s.sessions.find((se) => se.id === arrival.id),
     total = totals(s, se).total;
-  go(s, 'pay', { sessionId: se.id, amount: 1000, method: 'cash' });
+  go(s, 'pay', {
+    sessionId: se.id,
+    amount: 1000,
+    method: 'cash',
+    cashReceived: 1000,
+    cashReceivedCounts: { 1000: 1 },
+  });
   assert.equal(se.status, 'open');
   assert.equal(totals(s, se).due, total - 1000);
   go(s, 'pay', { sessionId: se.id, amount: total - 1000, method: 'credit' });

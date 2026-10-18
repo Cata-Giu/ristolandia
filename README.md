@@ -47,7 +47,7 @@ Nella pagina di accesso selezionare il ruolo. Password comune per il solo ambien
 | cashier    | Giulia Sala      | Cassa              | Centro              |
 | warehouse  | Paolo Rizzi      | Magazzino          | Centro              |
 
-Accesso diretto: `/?role=kitchen`, `/?role=waiter`, ecc. Richiesta cliente: `/?public=booking`. Cambiare postazione dal profilo o da Impostazioni. Gli account demo pubblicamente noti non sono autenticazione adatta alla produzione.
+Accesso diretto: `/?role=kitchen`, `/?role=waiter`, ecc. Richiesta cliente: `/?public=booking`. Cambiare postazione dal profilo o da Impostazioni. Gli account demo pubblicamente noti non sono autenticazione adatta alla produzione. Anche le bolle devono contenere solo dati fittizi.
 
 ## Percorso consigliato per la presentazione
 
@@ -70,7 +70,7 @@ Accesso diretto: `/?role=kitchen`, `/?role=waiter`, ecc. Richiesta cliente: `/?p
 - Smistamento cucina/bar, stati riga, servizio in sala, annullamenti motivati admin/responsabile.
 - Anteprima comanda, coda ed errori di stampa simulati, ristampe senza effetti economici o sul magazzino.
 - Fabbisogno da ordini aperti e scarico teorico al passaggio a pronto; movimenti tracciati.
-- Ricezioni con deduplicazione documento, inventari con motivazione, trasferimenti in transito e ricezione distinta.
+- Ricezioni manuali e da bolle multiriga con originali archiviati, deduplicazione, inventari e trasferimenti tracciati.
 - Pagamenti parziali/misti simulati, credito pagato, ricariche e punti da registro; bonus consultivo separato.
 - Dashboard derivata dalle operazioni, filtro sede/periodo demo, grafico orario ed esportazione CSV.
 - Catalogo e ricette consultivi, costo teorico e incidenza; ricetta incompleta esplicita.
@@ -84,6 +84,34 @@ In **Ordinazioni**, selezionare “Uscita per i prossimi prodotti” prima di to
 Dopo l'invio, cucina e bar raggruppano le righe per uscita in ordine crescente. L'uscita compare anche nello storico del palmare e nell'anteprima di stampa. La categoria (antipasto, primo, secondo, ecc.) rimane separata: un primo può essere richiesto in prima, seconda o altra uscita. I reparti mantengono i propri comandi di preparazione; la scelta dell'uscita non avvia automaticamente le portate successive.
 
 Le comande precedenti all'aggiornamento mostrano “Uscita non specificata”; le bozze precedenti sono mantenute e inizializzate alla prima uscita, modificabile prima dell'invio. Non occorre ripristinare i dati.
+
+## Cassa: correzioni, sconti e mance
+
+Su un conto aperto, **Aggiungi voce** invia un nuovo prodotto al reparto. **Modifica** corregge quantità e prezzo unitario; **Sconto € / %** applica uno sconto all'intera riga, in euro oppure in percentuale. **Annulla voce** conserva lo storico. Ogni correzione richiede una motivazione. Una riga già pronta/servita cambia soltanto nella quantità addebitata: non viene cancellata la preparazione né reintegrato il consumo. Le quantità ancora da preparare vengono aggiornate anche in cucina con una segnalazione riconoscibile.
+
+I conti chiusi sono bloccati; le correzioni non possono scendere sotto quanto già pagato. Un conto azzerato o già saldato può essere chiuso senza inventare un nuovo pagamento. I rimborsi restano fuori dal perimetro.
+
+Prima di usare il suggerimento del resto, registra i tagli disponibili con **Aggiungi fondo contanti**. Nel pagamento scegli **Contanti**, inserisci la somma consegnata usando tastiera/calcolatrice e specifica le banconote e monete effettivamente ricevute. Il sistema propone il resto esatto con il minimo numero di pezzi disponibili, includendo quelli ricevuti, e aggiorna il cassetto solo alla conferma. Se il resto non è componibile, il pagamento è bloccato. Limite demo: resto massimo 2.000 €. I vecchi incassi privi di tagli sono segnalati ed esclusi dalla disponibilità; il fondo non è una vendita.
+
+Le mance sono separate dalle consumazioni e dai punti. In **Impostazioni → Aliquota simulata sulle mance**, l'amministrazione imposta una percentuale da 0 a 100%, con due decimali e motivazione. Nessuna aliquota fiscale viene presunta: finché non è configurata, non si registrano mance. Ogni pagamento conserva aliquota e imposta stimate originarie anche dopo una variazione. È una simulazione da validare con il consulente fiscale, senza versamenti o documenti fiscali. Le mance sono ammesse con carta/contanti, non con credito prepagato.
+
+## Bolle, lettura automatica e archivio
+
+Apri **Bolle e documenti** dal menu o da Magazzino (admin, responsabile e magazzino). Scegli la sede, carica un PDF/foto oppure usa **Scatta foto** dal telefono. Il file originale viene archiviato prima della verifica: lo puoi riaprire o scaricare dal registro. Cerca per nome file, fornitore, numero e data. I movimenti di carico contengono il collegamento **Apri bolla**. In Magazzino puoi filtrare gli articoli per Cucina, Bevande / bar e Materiali di sala.
+
+Il server estrae testo dai PDF; per foto e PDF scansionati usa OCR locale. Non invia documenti a servizi esterni. Le righe riconosciute sono proposte per la verifica, distinguendo **Cucina**, **Bevande / bar** e **Materiali di sala** (es. tovaglie/tovaglioli). Quantità e unità vengono convertite solo quando compatibili. Verifica articolo, quantità, unità e costo; completa le righe mancanti e risolvi le confezioni specificandone il contenuto. La bozza di verifica si conserva nello stesso browser. **Conferma carico merce** genera un solo carico e crea gli eventuali nuovi articoli; originali e righe approvate restano consultabili dopo il riavvio.
+
+Limiti: JPEG/PNG/PDF fino a 10 MB, immagini fino a 24 MP, PDF fino a 10 pagine, carico fino a 100 righe. OCR e riconoscimento di tabelle non garantiscono estrazione completa o corretta di qualsiasi formato: serve sempre verifica dell'originale. Se il motore non è disponibile o il file non è leggibile, l'archivio resta operativo e puoi inserire le righe manualmente. Costi non riconosciuti sono esplicitamente da definire. La deduplicazione verifica sia il contenuto del file per sede, sia fornitore/numero/anno al carico.
+
+Per installare i lettori nel Codespace Ubuntu/Debian, una sola volta:
+
+```bash
+bash scripts/setup-documents.sh
+```
+
+Lo script installa Poppler, Tesseract e modello italiano tramite il gestore pacchetti del server. `scripts/cloud-setup.sh` li prepara automaticamente. Senza italiano, l'eventuale modello inglese viene usato con un avviso. Non è un servizio a pagamento.
+
+Gli originali sono in `data/documents/` (oppure `DOCUMENT_DIRECTORY`), con accessi API verificati per ruolo e sede. Restano sul volume del Codespace e sono esclusi da Git: **salva anche questa cartella insieme al backup dei dati** e non eliminare l'unica copia del Codespace. Il backup JSON della CLI contiene registri e metadati, non i file binari. Il reset globale della demo azzera anche archivio, fondo e configurazione mance, come indicato nella conferma; non serve per aggiornare il software.
 
 ## Verifiche
 

@@ -1,15 +1,34 @@
+import {
+  inspectUpload,
+  extractDocument,
+  parseDeliveryText,
+  saveOriginal,
+  originalBytes,
+} from './documents.mjs';
 import http from 'node:http';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual, randomUUID } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, extname } from 'node:path';
+import { resolve, extname, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { repository } from './repository.mjs';
-import { apply, view, USERS, DomainError } from './domain.mjs';
+import {
+  apply,
+  view,
+  USERS,
+  DomainError,
+  authorizeVenue,
+  recordAudit,
+} from './domain.mjs';
 import { VENUES } from './seed.mjs';
 import { configuredOrigins, validateRequestOrigin } from './origin.mjs';
 export function createApp({
   dbPath = process.env.DATA_PATH ?? 'data/demo.sqlite',
   publicOrigins = configuredOrigins(),
+  documentDirectory = process.env.DOCUMENT_DIRECTORY ??
+    resolve(
+      dirname(dbPath === ':memory:' ? 'data/demo.sqlite' : dbPath),
+      'documents',
+    ),
 } = {}) {
   const db = repository(dbPath),
     sessions = new Map(),
@@ -64,7 +83,13 @@ export function createApp({
         let raw = '';
         for await (const chunk of req) {
           raw += chunk;
-          if (raw.length > 32000)
+          const limit =
+            url.pathname === '/api/documents/upload'
+              ? 15 * 1024 * 1024
+              : url.pathname === '/api/actions/receive-document'
+                ? 256 * 1024
+                : 32000;
+          if (raw.length > limit)
             throw new DomainError('Richiesta troppo grande', 413);
         }
         try {
@@ -147,6 +172,92 @@ export function createApp({
       }
       if (!user)
         throw new DomainError('Accedi con un account dimostrativo', 401);
+      if (url.pathname.startsWith('/api/documents/')) {
+        if (!['admin', 'manager', 'warehouse'].includes(user.role))
+          throw new DomainError('Postazione non autorizzata ai documenti', 403);
+        if (url.pathname === '/api/documents/upload' && req.method === 'POST') {
+          const state = db.read();
+          authorizeVenue(state, user, body.venueId);
+          const { buffer, type, hash } = inspectUpload(body.base64);
+          const existing = (state.documents ?? []).find(
+            (d) => d.venueId === body.venueId && d.hash === hash,
+          );
+          if (existing)
+            return json(200, {
+              id: existing.id,
+              message: 'Documento già presente in archivio',
+            });
+          const extraction = await extractDocument(buffer, type),
+            suggestion = parseDeliveryText(extraction.text, state.ingredients);
+          saveOriginal(documentDirectory, hash, buffer);
+          const result = db.mutate((s) => {
+            const duplicate = (s.documents ?? []).find(
+              (d) => d.venueId === body.venueId && d.hash === hash,
+            );
+            if (duplicate)
+              return {
+                id: duplicate.id,
+                message: 'Documento già presente in archivio',
+              };
+            const document = {
+              id: randomUUID(),
+              venueId: body.venueId,
+              hash,
+              originalName: String(body.name ?? 'documento')
+                .replace(/[\r\n\x00]/g, '')
+                .slice(0, 180),
+              mediaType: type,
+              size: buffer.length,
+              text: extraction.text,
+              extractionMode: extraction.mode,
+              warnings: [...extraction.warnings, ...suggestion.warnings],
+              suggestedRows: suggestion.rows,
+              supplier: suggestion.supplier,
+              documentNumber: suggestion.documentNumber,
+              documentDay: suggestion.documentDay,
+              status: 'review',
+              uploadedAt: Date.now(),
+              user: user.name,
+            };
+            s.documents ??= [];
+            s.documents.push(document);
+            recordAudit(
+              s,
+              user,
+              body.venueId,
+              'upload-document',
+              document.id,
+              'Originale archiviato; carico da verificare',
+            );
+            s.revision++;
+            return {
+              id: document.id,
+              message:
+                'Originale archiviato. Verifica le righe prima del carico.',
+            };
+          });
+          return json(200, result);
+        }
+        const match = url.pathname.match(
+          /^\/api\/documents\/([^/]+)(\/file)?$/,
+        );
+        if (match && req.method === 'GET') {
+          const state = db.read(),
+            document = (state.documents ?? []).find((d) => d.id === match[1]);
+          if (!document) throw new DomainError('Documento non trovato', 404);
+          authorizeVenue(state, user, document.venueId);
+          if (!match[2]) return json(200, document);
+          const bytes = originalBytes(documentDirectory, document.hash);
+          res.writeHead(200, {
+            'Content-Type': document.mediaType,
+            'Content-Length': bytes.length,
+            'Cache-Control': 'no-store',
+            'Content-Disposition': `${url.searchParams.has('download') ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(document.originalName)}`,
+          });
+          return res.end(bytes);
+        }
+        throw new DomainError('Documento non trovato', 404);
+      }
       if (url.pathname === '/api/logout' && req.method === 'POST') {
         sessions.delete(token);
         res.setHeader(

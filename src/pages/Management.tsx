@@ -1,3 +1,4 @@
+import { TipTaxSettings } from '../components/TipTaxSettings';
 import { useState } from 'react';
 import {
   BookOpen,
@@ -457,6 +458,7 @@ export function Settings({
           ))}
         </div>
       </Panel>
+      <TipTaxSettings />
       <div className="settings-grid">
         <Panel
           title="Confini della demo"
@@ -539,7 +541,7 @@ export function Settings({
       {reset && (
         <Modal
           title="Ripristina la demo"
-          description="Le prenotazioni, le comande e i pagamenti inseriti durante le prove saranno eliminati. Verrà ricreato il set iniziale."
+          description="Le prenotazioni, le comande, i pagamenti, i fondi contanti e l’archivio documenti della demo saranno azzerati, insieme alle impostazioni sulle mance. Verrà ricreato il set iniziale."
           onClose={() => setReset(false)}
         >
           <ActionForm
@@ -548,6 +550,13 @@ export function Settings({
             onSubmit={async () => {
               await act('reset', {});
               sessionStorage.removeItem('ristolandia-session');
+              Object.keys(sessionStorage)
+                .filter(
+                  (key) =>
+                    key.startsWith('ristolandia-drafts-') ||
+                    key.startsWith('ristolandia-document-draft-'),
+                )
+                .forEach((key) => sessionStorage.removeItem(key));
               setReset(false);
             }}
           >

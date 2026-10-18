@@ -144,6 +144,7 @@ test('tutte le sezioni: accessibilità e layout desktop e smartphone', async ({
     'cashier',
     'menu',
     'inventory',
+    'documents',
     'customers',
     'temperatures',
     'notifications',
@@ -273,4 +274,218 @@ test('palmare: stesso piatto su uscite distinte, note, bozza, cucina e stampa', 
   expect(printed.indexOf('1ª uscita')).toBeLessThan(
     printed.indexOf('3ª uscita'),
   );
+});
+
+test('cassa: correzioni, sconti, annullamento e aggiunta dal conto', async ({
+  page,
+}) => {
+  await login(page, 'Cassa');
+  await page
+    .getByRole('button', { name: 'Aggiungi voce', exact: true })
+    .click();
+  await page.getByLabel('Prodotto del menu').selectOption('burrata');
+  await page
+    .getByRole('button', { name: 'Aggiungi e invia al reparto' })
+    .click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  const line = page
+    .locator('.bill-line-detail')
+    .filter({ hasText: 'Burrata e pomodori' })
+    .last();
+  await line.getByRole('button', { name: 'Sconto € / %', exact: true }).click();
+  await page.getByLabel('Prezzo unitario in euro').fill('10,00');
+  await page.getByLabel('Quantità da addebitare').fill('2');
+  await page.getByLabel('Sconto sulla riga').selectOption('percent');
+  await page.getByLabel('Percentuale di sconto').fill('10');
+  await page
+    .getByLabel('Motivazione della correzione')
+    .fill('Correzione demo prezzo e quantità');
+  await page.getByRole('button', { name: 'Salva correzione' }).click();
+  await expect(line).toContainText('18,00');
+  await line.getByRole('button', { name: 'Modifica', exact: true }).click();
+  await page.getByLabel('Sconto sulla riga').selectOption('euro');
+  await page.getByLabel('Sconto totale in euro').fill('5');
+  await page
+    .getByLabel('Motivazione della correzione')
+    .fill('Sconto riga demo');
+  await page.getByRole('button', { name: 'Salva correzione' }).click();
+  await expect(line).toContainText('15,00');
+  await line.getByRole('button', { name: 'Annulla voce' }).click();
+  await page
+    .getByLabel('Motivazione dell’annullamento')
+    .fill('Voce aggiunta erroneamente');
+  await page
+    .getByRole('button', { name: 'Conferma annullamento voce' })
+    .click();
+  await expect(line).toContainText('Annullata');
+});
+test('cassa: fondo, calcolatrice, tagli resto e aliquota mancia', async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole('link', { name: 'Impostazioni', exact: true }).click();
+  await page.getByRole('button', { name: 'Configura aliquota mance' }).click();
+  await page.getByLabel('Aliquota percentuale (0–100)').fill('5');
+  await page
+    .getByLabel('Motivazione della configurazione')
+    .fill('Aliquota simulata nel test');
+  await page.getByRole('button', { name: 'Salva aliquota simulata' }).click();
+  await page.getByRole('link', { name: 'Cassa', exact: true }).click();
+  await page.getByRole('button', { name: 'Aggiungi fondo contanti' }).click();
+  await page.getByLabel('Tagli del fondo: 20,00').fill('2');
+  await page.getByLabel('Tagli del fondo: 10,00').fill('1');
+  await page.getByRole('button', { name: 'Registra fondo per taglio' }).click();
+  await page
+    .getByRole('button', { name: 'Registra pagamento simulato', exact: true })
+    .click();
+  await page.getByLabel('Metodo simulato').selectOption('cash');
+  await page.getByLabel('Importo in euro', { exact: true }).fill('1,00');
+  await page.getByLabel('Mancia in euro (0 se assente)').fill('1,00');
+  await page.getByRole('button', { name: 'Inserisci 5', exact: true }).click();
+  await page.getByRole('button', { name: 'Inserisci 0', exact: true }).click();
+  await page.getByLabel('Tagli ricevuti: 50,00').fill('1');
+  await expect(page.locator('.change-preview')).toContainText('48,00');
+  // Add coins/notes for the 8 euros beyond the seeded 20/10 notes.
+  await page.getByRole('button', { name: 'Annulla', exact: true }).click();
+  await page.getByRole('button', { name: 'Aggiungi fondo contanti' }).click();
+  await page.getByLabel('Tagli del fondo: 2,00').fill('4');
+  await page.getByRole('button', { name: 'Registra fondo per taglio' }).click();
+  await page
+    .getByRole('button', { name: 'Registra pagamento simulato', exact: true })
+    .click();
+  await page.getByLabel('Metodo simulato').selectOption('cash');
+  await page.getByLabel('Importo in euro', { exact: true }).fill('1');
+  await page.getByLabel('Mancia in euro (0 se assente)').fill('1');
+  await page.getByLabel('Contanti consegnati dal cliente').fill('50');
+  await page.getByLabel('Tagli ricevuti: 50,00').fill('1');
+  await expect(page.locator('.change-preview')).toContainText('48,00');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Registra pagamento simulato', exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('.payment-history')).toContainText('Mancia 1,00');
+  await expect(page.locator('.payment-history')).toContainText('0,05');
+});
+test('bolle: PDF letto, carico multiriga, archivio e originale', async ({
+  page,
+}) => {
+  const { deliveryPdf } = await import('../fixtures/delivery.mjs');
+  await login(page);
+  await page
+    .getByRole('link', { name: 'Bolle e documenti', exact: true })
+    .click();
+  await page.getByLabel('File bolla JPEG PNG o PDF').setInputFiles({
+    name: 'Consegna demo.pdf',
+    mimeType: 'application/pdf',
+    buffer: deliveryPdf('BROWSER-88'),
+  });
+  await expect(
+    page.getByRole('heading', {
+      name: 'Verifica la lettura prima di caricare',
+    }),
+  ).toBeVisible({ timeout: 30000 });
+  await expect(page.getByLabel('Fornitore verificato')).toHaveValue(
+    'Dispensa Demo',
+  );
+  await expect(page.getByLabel('Quantità riga 1')).toHaveValue('2500');
+  await expect(page.getByLabel('Destinazione riga 3')).toHaveValue('supplies');
+  await page
+    .getByLabel('Fornitore verificato')
+    .fill('Dispensa Demo verificata');
+  await page.reload();
+  await expect(page.getByLabel('Fornitore verificato')).toHaveValue(
+    'Dispensa Demo verificata',
+  );
+  await page.getByRole('button', { name: 'Conferma carico merce' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Bolla caricata e archiviata' }),
+  ).toBeVisible();
+  const original = page.getByRole('link', { name: 'Apri originale' });
+  const response = await page.request.get(
+    (await original.getAttribute('href'))!,
+  );
+  expect(response.status()).toBe(200);
+  expect(Buffer.from(await response.body())).toEqual(deliveryPdf('BROWSER-88'));
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Bolla caricata e archiviata' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Torna all’archivio' }).click();
+  await page
+    .getByRole('textbox', { name: 'Cerca fornitore, bolla o data' })
+    .fill('BROWSER-88');
+  await expect(
+    page.getByRole('row').filter({ hasText: 'BROWSER-88' }),
+  ).toContainText('Caricata');
+  await page.getByRole('link', { name: 'Magazzino', exact: true }).click();
+  await page.getByLabel('Categoria magazzino').selectOption('supplies');
+  await expect(
+    page.getByRole('row').filter({ hasText: 'Tovaglioli' }),
+  ).toBeVisible();
+});
+test('foto: OCR locale di una bolla immagine', async ({ page, context }) => {
+  const fixture = await context.newPage();
+  await fixture.setViewportSize({ width: 1600, height: 1000 });
+  await fixture.setContent(
+    '<main style="padding:40px;font:32px Arial;line-height:2;color:black;background:white"><div>FORNITORE: Dispensa Demo</div><div>DDT n. FOTO-91</div><div>Data: 18/10/2026</div><div>Acqua naturale pz 6 0,55</div></main>',
+  );
+  const image = await fixture.screenshot();
+  await fixture.close();
+  await login(page);
+  await page
+    .getByRole('link', { name: 'Bolle e documenti', exact: true })
+    .click();
+  await page.getByLabel('File bolla JPEG PNG o PDF').setInputFiles({
+    name: 'Foto bolla.png',
+    mimeType: 'image/png',
+    buffer: image,
+  });
+  await expect(
+    page.getByRole('heading', {
+      name: 'Verifica la lettura prima di caricare',
+    }),
+  ).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText('Lettura OCR', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Quantità riga 1')).toHaveValue('6');
+});
+
+test('cassa su telefono: pagamento accessibile, errore conservato e resto insufficiente', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page, 'Cassa');
+  await page
+    .getByRole('button', { name: 'Registra pagamento simulato', exact: true })
+    .click();
+  await page.getByLabel('Metodo simulato').selectOption('cash');
+  await page.getByLabel('Importo in euro', { exact: true }).fill('1');
+  await page.getByLabel('Contanti consegnati dal cliente').fill('100');
+  await page.getByLabel('Tagli ricevuti: 100,00').fill('1');
+  const scan = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(
+    scan.violations.map((v) => ({
+      id: v.id,
+      targets: v.nodes.map((n) => n.target),
+    })),
+  ).toEqual([]);
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Registra pagamento simulato', exact: true })
+    .click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
+    'Resto non componibile',
+  );
+  await expect(page.getByLabel('Contanti consegnati dal cliente')).toHaveValue(
+    '100',
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
 });

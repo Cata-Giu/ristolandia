@@ -22,15 +22,18 @@ import {
   silently,
 } from '../components/ui';
 export function Inventory() {
-  const { state: s, act, busy } = useApp();
+  const { state: s, act, busy, navigate } = useApp();
   const [query, setQuery] = useState(''),
     [page, setPage] = useState(0),
+    [category, setCategory] = useState('all'),
     [tab, setTab] = useState('stock'),
     [modal, setModal] = useState<'receive' | 'inventory' | 'transfer' | null>(
       null,
     );
-  const rows = (s.ingredients ?? []).filter((i) =>
-      i.name.toLowerCase().includes(query.toLowerCase()),
+  const rows = (s.ingredients ?? []).filter(
+      (i) =>
+        i.name.toLowerCase().includes(query.toLowerCase()) &&
+        (category === 'all' || i.catalogCategory === category),
     ),
     movements = [...(s.movements ?? [])].reverse().filter(
       (m) =>
@@ -57,6 +60,9 @@ export function Inventory() {
         description="Giacenze teoriche, fabbisogno e movimenti con un’origine verificabile."
         actions={
           <>
+            <button className="button" onClick={() => navigate('documents')}>
+              Bolle e documenti
+            </button>
             <button className="button" onClick={() => setModal('inventory')}>
               <ClipboardCheck size={16} />
               Inventario
@@ -121,6 +127,22 @@ export function Inventory() {
               </button>
             ))}
           </div>
+          {tab === 'stock' && (
+            <select
+              className="inventory-category"
+              aria-label="Categoria magazzino"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="all">Tutte le categorie</option>
+              <option value="kitchen">Cucina</option>
+              <option value="beverage">Bevande / bar</option>
+              <option value="supplies">Materiali di sala</option>
+            </select>
+          )}
           <SearchBox
             value={query}
             onChange={(q) => {
@@ -163,10 +185,12 @@ export function Inventory() {
                         {number(i.min * (s.venueId === 'all' ? 5 : 1))} {i.unit}
                       </td>
                       <td>
-                        {new Intl.NumberFormat('it-IT', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 5,
-                        }).format(i.cost / 100)}{' '}
+                        {i.costMissing
+                          ? 'Da definire'
+                          : new Intl.NumberFormat('it-IT', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 5,
+                            }).format(i.cost / 100)}{' '}
                         €/{i.unit}
                       </td>
                       <td>
@@ -225,7 +249,16 @@ export function Inventory() {
                         {number(m.quantity)}
                       </td>
                       <td className="source-cell" title={m.source}>
-                        {m.source}
+                        {m.documentId ? (
+                          <a
+                            className="text-button"
+                            href={`?view=documents&venue=${m.venueId}&document=${m.documentId}`}
+                          >
+                            Apri bolla
+                          </a>
+                        ) : (
+                          m.source
+                        )}
                       </td>
                     </tr>
                   ))}

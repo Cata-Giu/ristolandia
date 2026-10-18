@@ -9,6 +9,7 @@ export type Page =
   | 'bar'
   | 'cashier'
   | 'menu'
+  | 'documents'
   | 'inventory'
   | 'customers'
   | 'temperatures'
@@ -38,6 +39,7 @@ export const navPermissions: Record<string, Page[]> = {
     'cashier',
     'menu',
     'inventory',
+    'documents',
     'customers',
     'temperatures',
     'notifications',
@@ -53,6 +55,7 @@ export const navPermissions: Record<string, Page[]> = {
     'cashier',
     'menu',
     'inventory',
+    'documents',
     'customers',
     'temperatures',
     'notifications',
@@ -63,5 +66,5 @@ export const navPermissions: Record<string, Page[]> = {
   kitchen: ['kitchen', 'temperatures'],
   bar: ['bar'],
   cashier: ['cashier', 'customers'],
-  warehouse: ['inventory', 'menu'],
+  warehouse: ['inventory', 'documents', 'menu'],
 };

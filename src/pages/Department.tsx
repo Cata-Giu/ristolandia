@@ -32,7 +32,10 @@ export function Department({ department }: { department: 'kitchen' | 'bar' }) {
     o.lines.some(
       (l) =>
         l.department === department &&
-        (filter === 'all' || !['served', 'cancelled'].includes(l.status)),
+        (filter === 'all' ||
+          !['served', 'cancelled'].includes(l.status) ||
+          (l.status === 'cancelled' &&
+            Date.now() - (l.cancelledAt ?? 0) < 30 * 60000)),
     ),
   );
   const jobs = s.prints.filter((p) => p.department === department),
@@ -135,12 +138,24 @@ export function Department({ department }: { department: 'kitchen' | 'bar' }) {
                           <div className="ticket-item">
                             <span className="eyebrow">{l.course}</span>
                             <h3>{l.name}</h3>
+                            {l.operationalChanges?.length ? (
+                              <p className="ticket-note">
+                                Quantità aggiornata:{' '}
+                                {l.operationalChanges.at(-1)?.from} →{' '}
+                                {l.quantity} ·{' '}
+                                {l.operationalChanges.at(-1)?.reason}
+                              </p>
+                            ) : null}
                             {l.note && (
                               <p className="ticket-note">Nota: {l.note}</p>
                             )}
                             {l.status === 'cancelled' && (
                               <p className="ticket-note">
-                                Annullamento: {l.reason}
+                                Annullamento
+                                {l.cancelledAt
+                                  ? ` alle ${time(l.cancelledAt)}`
+                                  : ''}
+                                : {l.reason}
                               </p>
                             )}
                             <div className="ticket-actions">
@@ -280,7 +295,17 @@ export function Department({ department }: { department: 'kitchen' | 'bar' }) {
               <strong>
                 LA CORTE · {department === 'kitchen' ? 'CUCINA' : 'BAR'}
               </strong>
-              <p>*** {print.reprint ? 'RISTAMPA' : 'DEMO'} ***</p>
+              <p>
+                ***{' '}
+                {print.reprint
+                  ? 'RISTAMPA'
+                  : print.cancellation
+                    ? 'ANNULLAMENTO'
+                    : print.correction
+                      ? 'VARIAZIONE QUANTITÀ'
+                      : 'DEMO'}{' '}
+                ***
+              </p>
               <h2>TAVOLO {printTable?.code}</h2>
               <p>
                 {time(print.at)} · #{print.orderId.slice(0, 8)}

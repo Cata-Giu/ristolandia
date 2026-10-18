@@ -16,9 +16,9 @@ Validare con Simone priorità, locale pilota e regole (lista domande in SPECIFIC
 
 - Tavoli unibili, riassegnazione e trasferimento sessioni, durate/turni configurabili, annullamento/no-show, lista attesa.
 - Varianti che cambiano prezzo e ricetta, sequenze portate configurabili, tracciamento modifiche post invio e identificazione del cameriere assegnato.
-- Ricezioni multiriga e anno documento, documenti protetti, lotti/scadenze, semilavorati e conversioni confezioni/resa.
+- Rafforzare riconoscimento dei formati documentali oltre l’estrazione assistita corrente; lotti/scadenze, semilavorati, prezzi effettivi e conversioni confezioni/resa.
 - Food cost effettivo di periodo e distinta tra ricavi lordi/netti con base fiscale validata.
-- Conti separati per persona/righe, storni, rimborsi, blocchi/riaperture tracciati; configurazione e validazione commerciale/fiscale del credito e dei bonus.
+- Conti separati per persona/righe e rimborsi/riaperture tracciati oltre le correzioni pre-chiusura già implementate; validazione fiscale delle mance, arrotondamenti contanti e regole credito/bonus.
 - Dashboard storiche avanzate, differenze cancellazioni/pranzo/cena, fidelizzazione e copertura campioni senza dati decorativi.
 
 ## Integrazioni separate

@@ -1,3 +1,4 @@
+import { Documents } from './pages/Documents';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
@@ -16,6 +17,7 @@ import {
   LogOut,
   Menu as MenuIcon,
   Package,
+  FileText,
   Receipt,
   Settings,
   ShieldCheck,
@@ -83,6 +85,12 @@ const items: {
   { id: 'bar', label: 'Bar', icon: GlassWater, group: 'operations' },
   { id: 'cashier', label: 'Cassa', icon: Receipt, group: 'operations' },
   { id: 'menu', label: 'Menu e ricette', icon: BookOpen, group: 'management' },
+  {
+    id: 'documents',
+    label: 'Bolle e documenti',
+    icon: FileText,
+    group: 'management',
+  },
   { id: 'inventory', label: 'Magazzino', icon: Package, group: 'management' },
   {
     id: 'customers',
@@ -367,6 +375,8 @@ export default function App() {
       <Department department="bar" />
     ) : page === 'cashier' ? (
       <Cashier />
+    ) : page === 'documents' ? (
+      <Documents />
     ) : page === 'inventory' ? (
       <Inventory />
     ) : page === 'menu' ? (

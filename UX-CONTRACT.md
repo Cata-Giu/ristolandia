@@ -35,8 +35,14 @@ Bozze sala salvate in sessionStorage per account: restano cambiando schermata, n
 
 ## Limiti espliciti
 
-Nessuna modifica commerciale avanzata, rimborso o salvataggio offline. Moduli secondari dichiarati dimostrativi o consultivi. WCAG AA è obiettivo di verifica automatica e revisione, non certificazione. I popup nativi dipendono da browser e sistema operativo.
+Correzioni di riga e sconti motivati prima della chiusura; nessun rimborso su conto chiuso o salvataggio operativo offline. Moduli secondari dichiarati dimostrativi o consultivi. WCAG AA è obiettivo di verifica automatica e revisione, non certificazione. I popup nativi dipendono da browser e sistema operativo.
 
 ## Uscite di servizio
 
 Fonte: specifica §7.2 e richiesta utente di scegliere prima/seconda/terza uscita nel palmare e riportarla in cucina. `ServiceRoundSelect` è il selettore nativo condiviso, governato da `shared/service-rounds.json`; `serviceRoundLabel` è l'unico formato del nome dell'uscita. La scelta principale vale per le prossime aggiunte; il selettore di riga modifica solo quella bozza. Le uscite inviate sono storicizzate, visibili al reparto e nella stampa. Nessun automatismo sull'avvio della preparazione.
+
+## Cassa e documenti
+
+Fonte: richiesta utente di correzione conto, sconti, calcolo resto per taglio, mance configurabili e lettura/archivio delle bolle; specifica §§8, 10, 13, 15, 18. `shared/finance.mjs` è proprietario unico di parse euro, calcolo sconti/imposta e suggerimento resto; frontend e server usano le stesse funzioni. DenominationInput e CashKeypad sono controlli condivisi della cassa; aliquota solo admin, mai presunta. Annullare conserva la riga e il magazzino già consumato. Nessuna modifica riduce il totale sotto il pagato.
+
+Documenti: upload → archivio originale → estrazione con esito esplicito → verifica righe → conferma atomica carico → dettaglio documento ricevuto. Il tasto Torna all'archivio conserva la bozza locale per documento/utente; le conferme rimuovono tale bozza. Archive list paginata; proposta limitata a 100 righe per documento, rendered all per revisione contro l'originale. Errori persistenti e valori conservati, nessun carico su mera estrazione. Solo admin/responsabile/magazzino vedono originali e proposte, con confine sede server. Se cambia la sede attiva si chiude il dettaglio precedente. Nessuna immagine o PDF è inviato a servizi terzi.

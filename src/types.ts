@@ -73,12 +73,22 @@ export interface Line {
   name: string;
   quantity: number;
   price?: number;
+  billQuantity?: number;
+  discount?: { kind: 'none' | 'percent' | 'euro'; value: number };
+  adjustments?: { at: number; user: string; reason: string }[];
+  operationalChanges?: {
+    at: number;
+    from: number;
+    to: number;
+    reason: string;
+  }[];
   department: string;
   course: string;
   serviceRound?: number;
   note: string;
   status: string;
   reason?: string;
+  cancelledAt?: number;
   recipe?: Record<string, number> | null;
 }
 export interface Order {
@@ -94,9 +104,17 @@ export interface Payment {
   sessionId: string;
   amount: number;
   method: string;
+  tip?: number;
+  tipTax?: number;
+  tipTaxBasisPoints?: number | null;
+  cashReceived?: number;
+  changeAmount?: number;
+  changeCounts?: Record<string, number>;
   at: number;
 }
 export interface Ingredient {
+  costMissing?: boolean;
+  catalogCategory?: string;
   id: string;
   name: string;
   unit: string;
@@ -106,6 +124,7 @@ export interface Ingredient {
   expected: number;
 }
 export interface Movement {
+  documentId?: string;
   id: string;
   venueId: string;
   ingredientId: string;
@@ -133,6 +152,8 @@ export interface Print {
   attempt: number;
   at: number;
   reprint?: boolean;
+  correction?: boolean;
+  cancellation?: boolean;
 }
 export interface Alert {
   id: string;
@@ -172,6 +193,51 @@ export interface Transfer {
   status: string;
   at: number;
 }
+export interface Drawer {
+  venueId: string;
+  day: string;
+  counts: Record<string, number>;
+  total: number;
+  untracked: number;
+  movements: {
+    id: string;
+    type: string;
+    counts: Record<string, number>;
+    source: string;
+    user: string;
+    at: number;
+  }[];
+}
+export interface DocumentRow {
+  id: string;
+  ingredientId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  cost: number | null;
+  catalogCategory: 'kitchen' | 'beverage' | 'supplies';
+  source?: string;
+}
+export interface DeliveryDocument {
+  id: string;
+  venueId: string;
+  originalName: string;
+  mediaType: string;
+  size: number;
+  status: string;
+  uploadedAt: number;
+  user: string;
+  supplier: string;
+  documentNumber: string;
+  documentDay: string;
+  warnings: string[];
+  extractionMode: string;
+  rowCount: number;
+  receiptId?: string;
+  text?: string;
+  suggestedRows?: DocumentRow[];
+  reviewedRows?: DocumentRow[];
+}
 export interface State {
   revision: number;
   day: string;
@@ -187,11 +253,14 @@ export interface State {
   alerts: Alert[];
   notifications: Notification[];
   payments?: Payment[];
+  drawers?: Drawer[];
+  tipTaxBasisPoints?: number | null;
   customers?: Customer[];
   ingredients?: Ingredient[];
   movements?: Movement[];
   transfers?: Transfer[];
   audit?: Audit[];
+  documents?: DeliveryDocument[];
 }
 export type Act = (
   action: string,

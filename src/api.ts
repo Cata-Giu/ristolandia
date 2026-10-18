@@ -10,9 +10,10 @@ export async function api<T>(
   path: string,
   body?: unknown,
   key?: string,
+  timeoutMs = 12000,
 ): Promise<T> {
   const response = await fetch('/api/' + path, {
-    signal: AbortSignal.timeout(12000),
+    signal: AbortSignal.timeout(timeoutMs),
     method: body === undefined ? 'GET' : 'POST',
     headers: {
       'Content-Type': 'application/json',
