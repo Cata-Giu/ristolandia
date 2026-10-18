@@ -28,6 +28,13 @@ export function configuredOrigins(env = process.env) {
       );
     origins.add(origin);
   }
+  // VS Code can rewrite Host while a local forwarded browser keeps its
+  // loopback Origin. Trust only the fixed dev port, and only under npm run dev.
+  if (env.RISTOLANDIA_DEV_MODE === '1') {
+    for (const host of ['127.0.0.1', 'localhost', '[::1]']) {
+      origins.add(`http://${host}:5173`);
+    }
+  }
   // Codespaces terminates HTTPS before forwarding to Vite/Node. Only this
   // environment's two application ports are trusted, never a domain wildcard.
   if (env.CODESPACE_NAME) {

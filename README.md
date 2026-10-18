@@ -26,6 +26,8 @@ Aprire http://localhost:3001. `PORT` cambia la porta; `DATA_PATH` cambia il file
 
 Aprire Code → Codespaces → Create codespace on main nella repo. Nel terminale del Codespace eseguire `npm ci` e `npm run dev`, poi aprire la porta **5173** dalla scheda Ports. Il server riconosce automaticamente gli indirizzi HTTPS esatti del Codespace tramite `CODESPACE_NAME` e `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`; non occorre rendere pubbliche le porte.
 
+Da VS Code desktop collegato al Codespace, l’inoltro locale può aprire `http://127.0.0.1:5173` oppure `http://localhost:5173`. Avviando con `npm run dev`, questi indirizzi esatti sono autorizzati anche se il tunnel riscrive l’host. La porta di Vite resta fissa su 5173: se già occupata, fermare l’altro processo anziché avviare una seconda copia. Questa autorizzazione locale non viene attivata da `npm start`; per un proxy produttivo usare `APP_ORIGIN`.
+
 Se una versione precedente mostra “Origine della richiesta non autorizzata”, fermare il processo con Ctrl+C, eseguire `git pull --ff-only origin main`, riavviare `npm run dev` e ricaricare la scheda della demo. Gli aggiornamenti non azzerano il database.
 
 Per un proxy diverso da Codespaces, impostare `APP_ORIGIN` sull'origine pubblica esatta (es. `https://demo.example.com`, senza percorso) prima di avviare il server. Non usare wildcard o disattivare il controllo delle origini.
