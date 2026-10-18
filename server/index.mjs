@@ -6,8 +6,10 @@ import { pathToFileURL } from 'node:url';
 import { repository } from './repository.mjs';
 import { apply, view, USERS, DomainError } from './domain.mjs';
 import { VENUES } from './seed.mjs';
+import { configuredOrigins, validateRequestOrigin } from './origin.mjs';
 export function createApp({
   dbPath = process.env.DATA_PATH ?? 'data/demo.sqlite',
+  publicOrigins = configuredOrigins(),
 } = {}) {
   const db = repository(dbPath),
     sessions = new Map(),
@@ -53,14 +55,10 @@ export function createApp({
         });
         return res.end(readFileSync(file));
       }
-      // Reject cross-origin mutations, including credentialed browser requests.
-      if (req.method === 'POST' && req.headers.origin) {
-        const origin = new URL(req.headers.origin);
-        const expectedHost =
-          req.headers['x-forwarded-host'] ?? req.headers.host;
-        if (origin.host !== expectedHost)
-          throw new DomainError('Origine della richiesta non autorizzata', 403);
-      }
+      const requestOrigin =
+        req.method === 'POST'
+          ? validateRequestOrigin(req, publicOrigins)
+          : null;
       let body = {};
       if (req.method === 'POST') {
         let raw = '';
@@ -131,7 +129,7 @@ export function createApp({
         });
         res.setHeader(
           'Set-Cookie',
-          `ristolandia=${t}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''}`,
+          `ristolandia=${t}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${req.socket.encrypted || requestOrigin?.startsWith('https://') ? '; Secure' : ''}`,
         );
         return json(200, { user: selected });
       }

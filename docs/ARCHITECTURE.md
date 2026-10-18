@@ -17,6 +17,8 @@ Nessun adattatore esterno attivo: le integrazioni sono rappresentate da registri
 
 Ogni ruolo ha identità individuale; la password pubblica della demo è intenzionale, non una soluzione produttiva. Sessioni in memoria con scadenza 8 ore: il riavvio richiede un nuovo accesso. Nessuna credenziale è salvata nel browser. Il server verifica ruolo, sede e reparto prima di leggere o mutare lo stato. La proiezione rimuove dati economici da cucina/bar/sala. Nel client i permessi limitano anche la navigazione.
 
+Le mutazioni verificano l'origine contro l'host/protocollo della connessione diretta oppure le origini pubbliche esatte configurate. `server/origin.mjs` riconosce automaticamente i soli endpoint 5173/3001 del Codespace corrente; `APP_ORIGIN` configura un altro proxy. Le intestazioni inoltrate non autorizzano da sole un'origine. Il login HTTPS con origine validata imposta anche Secure sul cookie. Origini invalide, altri Codespaces e altre porte restano rifiutati con 403.
+
 Revisione globale ottimistica: la mutazione verifica expectedRevision; modifiche concorrenti producono 409 e obbligano a rileggere. La transazione SQLite serializza scritture e tutela anche saldo credito. Chiave di idempotenza per utente/azione/contenuto: i retry hanno lo stesso esito; una chiave riciclata con contenuto diverso viene rifiutata. Il client conserva la chiave per errori di rete con esito incerto.
 
 Il consolidato è consentito soltanto all'admin. La demo contiene un'unica organizzazione: **non dimostra ancora un isolamento multitenant produttivo**. Nel pilota organizzazione e sede devono diventare chiavi obbligatorie di tutte le entità nelle tabelle normalizzate, con test su almeno due organizzazioni e query autorizzate per tenant.

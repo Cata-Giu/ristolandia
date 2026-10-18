@@ -22,6 +22,14 @@ npm start
 
 Aprire http://localhost:3001. `PORT` cambia la porta; `DATA_PATH` cambia il file SQLite (default `data/demo.sqlite`). Più dispositivi si collegano allo **stesso server** e condividono i dati con aggiornamento ogni 5 secondi. In rete locale usare l'indirizzo del server; in cloud usare l'inoltro porte disponibile nell'ambiente. Non confondere localhost remoto e localhost del proprio computer.
 
+## Avvio su GitHub Codespaces
+
+Aprire Code → Codespaces → Create codespace on main nella repo. Nel terminale del Codespace eseguire `npm ci` e `npm run dev`, poi aprire la porta **5173** dalla scheda Ports. Il server riconosce automaticamente gli indirizzi HTTPS esatti del Codespace tramite `CODESPACE_NAME` e `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`; non occorre rendere pubbliche le porte.
+
+Se una versione precedente mostra “Origine della richiesta non autorizzata”, fermare il processo con Ctrl+C, eseguire `git pull --ff-only origin main`, riavviare `npm run dev` e ricaricare la scheda della demo. Gli aggiornamenti non azzerano il database.
+
+Per un proxy diverso da Codespaces, impostare `APP_ORIGIN` sull'origine pubblica esatta (es. `https://demo.example.com`, senza percorso) prima di avviare il server. Non usare wildcard o disattivare il controllo delle origini.
+
 ## Accessi dimostrativi
 
 Nella pagina di accesso selezionare il ruolo. Password comune per il solo ambiente demo: **`Demo2026!`**. Ogni account ha identità e sessione distinte.

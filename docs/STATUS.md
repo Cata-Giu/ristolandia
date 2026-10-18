@@ -10,7 +10,7 @@ Flusso operativo implementato: richiesta cliente → conferma e tavolo → arriv
 
 ## Verifiche della consegna
 
-- `npm test`: 18 test dominio/API, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
+- `npm test`: 22 test dominio/API, passati. Inclusi rollback, backup/restore, idempotenza, concorrenza, credito, magazzino, permessi e rifiuto organizzazione differente.
 - `npm run build`: typecheck TypeScript e build Vite, passati.
 - `npm run format:check`: formattazione coerente tramite Prettier.
 - `npm run test:browser`: 6 scenari Chromium: desktop, intero percorso operativo, palmare a 390 px, accessibilità login/dashboard, tutte le 12 sezioni con controllo axe e layout stretto, validazione e richiesta pubblica.
@@ -19,6 +19,10 @@ Flusso operativo implementato: richiesta cliente → conferma e tavolo → arriv
 - Screenshot di verifica: dashboard-desktop.png e sala-mobile.png in questa cartella.
 
 Durante la revisione sono stati corretti: overflow mobile dei cataloghi e delle tabelle, nomi accessibili dei campi, focus dei dialoghi e della navigazione mobile, contrasto testo/stati, coerenza del set demo e costi ingredienti nell’unità base. La barra mobile del palmare rende raggiungibile il riepilogo senza scorrere l'intero catalogo.
+
+## Correzione accesso Codespaces
+
+Corretto il rifiuto del login dietro il proxy HTTPS di Codespaces: l'origine esterna viene riconosciuta dalle variabili dell'ambiente per le porte 5173/3001. Il server non si fida di intestazioni forwarded arbitrarie e non accetta wildcard. Quattro test aggiuntivi coprono login/lettura/logout dietro host interno, accesso locale, rifiuto di altre origini e validazione della configurazione. Per applicare la correzione a un Codespace già aperto: fermare il processo, aggiornare da main e riavviare `npm run dev`. Non serve reinstallare dipendenze o ripristinare dati.
 
 ## Limiti da conoscere prima di continuare
 
